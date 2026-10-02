@@ -1,0 +1,150 @@
+.app-shell { min-height: 100dvh; isolation: isolate; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.eyebrow { color: #84622f; text-transform: uppercase; letter-spacing: .16em; font-size: .64rem; margin-bottom: 6px; }
+h1 { font-size: 2.4rem; letter-spacing: .03em; } h2 { font-size: 1.6rem; margin-bottom: 12px; } h3 { font-size: 1rem; margin-bottom: 8px; }
+.resources span, .subtle, dt { color: #796c57; font-size: .82rem; } small { font-size: .72rem; color: #796c57; }
+button { background: #d7bb7c; color: #4a3623; border: 1px solid #d7bb7c; border-radius: 2px; padding: 9px 15px; font-weight: 600; }
+button:hover:not(:disabled) { background: #ead1a0; } button.secondary { background: #f0e2bfcf; color: #54432c; border-color: #a38b62; }
+button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { background: #e9d5a8; }
+.campaign-hud { position: fixed; top: 16px; right: 20px; z-index: 20; width: max-content; max-width: calc(100% - 24px); padding: 11px 14px; background: #f4e8c9e8; border: 1px solid #a48b5c66; border-radius: 2px; }
+.resources { display: flex; gap: 18px; } .resources div { display: grid; gap: 3px; } .resources span { font-size: .64rem; } .resources strong { font-size: 1.05rem; font-weight: 500; white-space: nowrap; } .resources small { font-size: .6rem; }
+.turn-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.turn-actions button { padding: 6px 11px; font-size: .73rem; } .turn-actions .secondary { background: transparent; border-color: #a08a614d; font-weight: 400; }
+.game-layout, .map-panel { position: fixed; inset: 0; }
+.game-layout { z-index: 0; }
+.map-panel { background: #91bbc5; }
+.campaign-map { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; background: #91bbc5; }
+/* One continuous parchment landscape; political lines sit above the relief. */
+.map-sea { fill: url(#sea-wash); }
+.map-land { fill: url(#land-wash); stroke: #9c9876; stroke-width: .65; stroke-linejoin: round; }
+.map-coastal-shallows { fill: none; stroke: #c4ddd4; stroke-width: 8; stroke-opacity: .52; stroke-linejoin: round; }
+.map-context, .map-physical-features, .map-terrain, .map-borders, .map-labels, .map-faction-seats, .map-settlements, .map-province-seats, .map-armies, .map-local-details { pointer-events: none; }
+.territory-state { cursor: pointer; outline: none; }
+.state-area { fill: #fff3cd; fill-opacity: .025; stroke: none; transition: fill-opacity .18s; }
+.territory-state:hover .state-area { fill-opacity: .22; }
+.territory-state.selected .state-area { fill: #fff3c8; fill-opacity: .3; }
+.territory-state:focus-visible .state-area { fill-opacity: .35; stroke: #8d6b37; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.map-borders path, .state-selection { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.dominion-border { stroke-width: 6; stroke-opacity: .8; }
+.dominion-ink { stroke: #624d38; stroke-width: .85; stroke-opacity: .85; }
+.province-division { stroke: #856d49; stroke-width: 1.35; stroke-opacity: .68; }
+.state-division { stroke: #8e7d5b; stroke-width: .8; stroke-opacity: .62; }
+.province-highlight { fill: #fff3cc; fill-opacity: .09; }
+.selected-province-border { stroke: #79572f; stroke-width: 2.3; stroke-opacity: .9; }
+.state-selection { stroke: #76512f; stroke-width: 1.8; }
+.faction-seal { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.faction-seal .seal-ring { fill: #f2e3bd; fill-opacity: .92; stroke-width: .8; }
+.faction-seal .capital-outer { fill: #efddb0; stroke-width: .6; stroke-opacity: .55; }
+.faction-seal .emblem-eye, .faction-seal .emblem-boss { fill: currentColor; stroke: none; }
+.map-river { fill: none; stroke: #689ca9; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.river-bank-light { fill: none; stroke: #efe7ce; stroke-width: 1.9; stroke-opacity: .45; stroke-linecap: round; }
+.river-fertility { fill: none; stroke: #97ac84; stroke-width: 13; stroke-opacity: .06; stroke-linecap: round; filter: url(#river-wash-soften); }
+.map-lake { fill: #a0c7ca; stroke: #8ba5a0; stroke-width: .6; }
+.water-label { fill: #53818a; font: italic 17px Georgia, serif; letter-spacing: .1em; text-anchor: middle; }
+.map-labels text { fill: #53432e; font-family: Georgia, serif; paint-order: stroke; stroke: #efdfbc; stroke-linejoin: round; }
+.map-labels .state-label { letter-spacing: .015em; }
+.map-labels .dominion-label { font-weight: 500; font-style: italic; letter-spacing: .1em; }
+.map-labels .city-label { fill: #806c4c; font-style: italic; }
+.map-labels .active-state { font-weight: bold; fill: #4c351f; }
+.map-settlements { fill: #806a48; stroke: #f3e6c7; stroke-width: .7; }
+.map-settlements rect, .map-settlements circle { vector-effect: non-scaling-stroke; }
+.map-province-seats { fill: #f1dfb8; stroke: #775b35; stroke-width: 1.1; }
+.map-scenery { pointer-events: none; }
+.map-scenery use { stroke-linejoin: round; stroke-linecap: round; }
+.scenery-shadow { fill: #725d3f; fill-opacity: .14; stroke: none; }
+.perspective-toggle[aria-pressed="true"] { background: #dbc294; border-color: #967548; }
+.province-seat-center { fill: #775b35; stroke: none; }
+.map-armies path { fill: currentColor; stroke: #f6e6be; stroke-width: .9; }
+.map-armies .active-army path { stroke: #6e512f; stroke-width: 1; }
+.map-armies text, .map-local-details text { font: 10px Georgia, serif; fill: #6d5a3c; paint-order: stroke; stroke: #f0e2c2; stroke-width: 2; stroke-linejoin: round; }
+.map-armies text { text-anchor: middle; }
+.terrain-wash, .terrain-detail, .terrain-tributaries, .detail-fade { transition: opacity .45s ease; }
+.map-location { position: fixed; left: 28px; top: 28px; z-index: 10; pointer-events: none; text-shadow: 0 1px 5px #f0e3c5; }
+.map-location > p:last-child { font: 27px Georgia, serif; color: #665035; }
+.map-location small { display: block; margin-top: 7px; font: 11px Georgia, serif; color: #857354; letter-spacing: .025em; }
+.panel { padding: 22px; background: #f3e6c7f5; border: 1px solid #a48b5c88; border-radius: 2px; box-shadow: 0 16px 56px #644b2733; }
+.command-panel { position: fixed; top: 128px; right: 24px; z-index: 30; width: 320px; max-height: calc(100dvh - 248px); overflow-y: auto; overscroll-behavior: contain; }
+.command-panel[data-side="left"] { right: auto; left: 24px; }
+.close-panel { position: sticky; top: 0; float: right; margin: -8px -8px 0 8px; display: grid; place-items: center; padding: 0; width: 32px; height: 32px; background: #f3e6c7f5; color: #6e5534; border-color: #9b835c66; font-size: 1.5rem; font-weight: 400; }
+.close-panel:hover:not(:disabled) { background: #e9d5a8; }
+.province-stats { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0; padding: 14px 0; border-block: 1px solid #ab916066; } dt { font-size: .7rem; } dd { margin: 5px 0 0; font-size: 1.35rem; }
+label { display: block; margin: 18px 0 8px; font-size: .82rem; } select { width: 100%; background: #faf1d9; color: #493b2c; border: 1px solid #a48b5c; border-radius: 2px; padding: 9px; margin-bottom: 10px; }
+.action-list { display: grid; gap: 12px; margin-top: 14px; } .action-list button { width: 100%; } .action-list p { font-size: .73rem; color: #796c57; margin-top: 4px; }
+.battle-panel { position: fixed; z-index: 40; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(900px, calc(100% - 48px)); max-height: calc(100dvh - 190px); overflow-y: auto; border-color: #84622f; background: #f1e0baf7; }
+.battle-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 20px; } .battle-plans > div { padding: 16px; border: 1px solid #ac9168; border-radius: 2px; } .battle-plans p { font-size: .82rem; margin-bottom: 12px; } .battle-plans .battle-score { font-size: 1.7rem; color: #8b5a23; } .battle-score span { color: #796c57; font-size: .85rem; }
+.utility-panel { position: fixed; bottom: 126px; left: 24px; z-index: 30; width: min(530px, calc(100% - 48px)); max-height: calc(100dvh - 290px); overflow-y: auto; overscroll-behavior: contain; }
+.roster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } .roster article { border: 1px solid #ab916066; padding: 14px; border-radius: 2px; } .roster p { font-size: .8rem; margin-bottom: 8px; } .roster strong { color: #805b28; font-size: .85rem; }
+.log-panel ol { padding-left: 20px; margin: 0; display: flex; flex-direction: column-reverse; } .log-panel li { padding: 9px 0; font-size: .8rem; line-height: 1.6; color: #66573f; border-bottom: 1px solid #ab916066; }
+.session-note { color: #786d56; font-size: .72rem; margin-top: 14px; }
+.outcome { position: fixed; z-index: 35; top: 165px; left: 50%; transform: translateX(-50%); width: min(500px, calc(100% - 48px)); padding: 22px; border: 1px solid #d7bb7c; border-radius: 2px; background: #f3e3bff5; box-shadow: 0 16px 56px #644b2733; }
+.map-toolbar { position: fixed; left: 24px; right: 24px; bottom: 34px; z-index: 20; pointer-events: none; }
+.map-legend { display: flex; flex-wrap: wrap; width: fit-content; gap: 18px; padding: 9px 12px; margin-bottom: 10px; background: #faf1d9c9; border-radius: 2px; font-size: .75rem; color: #635136; } .map-legend span { display: flex; align-items: center; gap: 7px; } .map-legend .faction-seal { width: 20px; height: 20px; flex: none; }
+.border-key i { width: 18px; border-top: 2px solid #62482e; } .border-key.provincial i { border-top: 1px dashed #927a53; }
+.map-toolbar-actions { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.utility-actions, .map-controls { display: flex; gap: 8px; pointer-events: auto; }
+.map-hint { color: #59472d; font-size: .76rem; text-shadow: 0 1px 3px #f4e8c9; }
+.map-attribution { position: fixed; bottom: 10px; right: 24px; z-index: 20; color: #786d56; font-size: .64rem; text-shadow: 0 1px 3px #f4e8c9; }
+.map-attribution a { color: #84622f; text-underline-offset: 3px; }
+@media (max-width: 950px) {
+  .map-hint { display: none; }
+  .battle-plans { gap: 10px; } .battle-plans > div { padding: 12px; }
+}
+@media (max-width: 600px) {
+  .campaign-hud { top: 12px; right: 12px; padding: 10px 12px; }
+  .resources { gap: 14px; }
+  .command-panel, .command-panel[data-side="left"], .utility-panel { top: auto; left: 12px; right: 12px; bottom: 128px; width: auto; max-height: min(50dvh, 410px, calc(100dvh - 260px)); padding: 18px; }
+  .battle-panel { width: calc(100% - 24px); top: 136px; transform: translateX(-50%); max-height: calc(100dvh - 248px); padding: 18px; } .battle-panel h2 { font-size: 1.4rem; } .battle-panel p { font-size: .8rem; } .battle-plans { grid-template-columns: 1fr; margin-top: 12px; }
+  .roster { grid-template-columns: 1fr; }
+  .outcome { top: 136px; width: calc(100% - 24px); }
+  .map-toolbar { left: 12px; right: 12px; bottom: 34px; } .map-toolbar-actions { gap: 8px; } .utility-actions, .map-controls { gap: 4px; } .map-toolbar button { padding: 8px; font-size: .69rem; } .map-controls button[aria-label="Zoom out"], .map-controls button[aria-label="Zoom in"] { min-width: 30px; }
+  .map-legend { gap: 12px; margin-bottom: 8px; padding: 7px 9px; font-size: .65rem; }
+  .map-legend .border-key { display: none; }
+  .map-attribution { left: 12px; right: 12px; text-align: right; font-size: .54rem; }
+}
+@media (max-height: 650px) and (min-width: 601px) {
+  .campaign-hud { top: 10px; } .utility-panel { max-height: calc(100dvh - 248px); }
+}
+
+
+.log-short { display: none; }
+.province-summary { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #ab916066; }
+.province-summary h3 { display: inline; margin-right: 8px; }
+.province-summary h3 small { font-weight: normal; font-style: italic; }
+.province-summary .focus-province { padding: 4px 7px; margin-bottom: 9px; font-size: .65rem; font-weight: normal; }
+.province-members { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.province-members button { display: flex; align-items: center; gap: 6px; font-weight: normal; font-size: .72rem; padding: 5px 7px; border-color: #ab916066; }
+.province-members button[aria-pressed="true"] { background: #e6ce9d; border-color: #86643c; }
+.province-members i { width: 6px; height: 6px; border-radius: 50%; }
+.border-key.district i { border-top: 1px solid #8d7855; }
+.border-key.provincial i { border-top: 1.5px solid #927a53; }
+.map-controls .detail-toggle { font-weight: normal; }
+.map-controls .detail-toggle[aria-pressed="true"] { background: #d9bd84; }
+.local-summary { text-transform: capitalize; margin-bottom: 8px; }
+.route-preview { font-size: .72rem; margin: 6px 0; }
+.state-link { display: inline; padding: 0; border: 0; background: none; font-size: inherit; font-weight: normal; color: #76592f; text-decoration: underline; text-underline-offset: 3px; }
+.state-link:hover:not(:disabled) { background: none; color: #45301c; }
+@media (max-width: 600px) {
+  .map-location { left: 18px; top: 125px; }
+  .map-location > p:last-child { font-size: 23px; }
+  .map-location .eyebrow { font-size: .56rem; }
+  .map-toolbar-actions { flex-wrap: wrap; }
+  .map-controls { margin-left: auto; }
+  .map-controls button { padding-inline: 7px; }
+  .command-panel, .utility-panel { bottom: 164px; max-height: min(42dvh, 370px, calc(100dvh - 295px)); }
+}
+@media (max-width: 450px) {
+  .map-toolbar .map-controls { width: 100%; justify-content: space-between; }
+  .map-toolbar .utility-actions { gap: 8px; }
+  .map-legend { display: none; }
+  .map-controls { gap: 4px; }
+  .map-controls button { padding-inline: 5px; font-size: .73rem; }
+}
+@media (max-height: 500px) {
+  .map-location { top: 15px; }
+  .map-location > p:last-child { font-size: 22px; }
+  .map-legend { display: none; }
+  .command-panel { top: 118px; max-height: calc(100dvh - 205px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .terrain-wash, .terrain-detail, .terrain-tributaries, .detail-fade { transition: none; }
+}
