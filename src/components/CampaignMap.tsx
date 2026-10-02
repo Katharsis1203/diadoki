@@ -33,6 +33,7 @@ type Props = {
 }
 const polygonPath = (ring: readonly (readonly [number, number])[]) => `M${ring.map(p=>p.join(',')).join('L')}Z`
 const campaignPath = polygonPath(campaignOutline)
+const WHEEL_ZOOM_SENSITIVITY = .0015
 
 export function CampaignMap({ game, camera, level, terrainLevel, perspective=false, onSelect, onBackground, onZoom, onPointerDown, onPointerMove, onPointerUp, suppressClick }: Props) {
   const svg = useRef<SVGSVGElement>(null)
@@ -54,7 +55,7 @@ export function CampaignMap({ game, camera, level, terrainLevel, perspective=fal
       const anchor = mapProjection(perspective).inverse([point.x, point.y])
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? map.clientHeight : 1
       const delta = Math.max(-200, Math.min(200, event.deltaY * unit))
-      onZoom(Math.exp(-delta * .002), anchor, true)
+      onZoom(Math.exp(-delta * WHEEL_ZOOM_SENSITIVITY), anchor, true)
     }
     // A non-passive listener lets map zoom consume the wheel without page scrolling.
     map.addEventListener('wheel', wheel, { passive: false })

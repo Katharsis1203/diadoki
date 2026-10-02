@@ -10,6 +10,8 @@ import { cameraPan, mapProjection } from './game/mapProjection'
 import type { MapPoint } from './game/mapProjection'
 import './App.css'
 
+const ZOOM_EASING_MS = 110
+
 const cameraAtZoom = (camera: Camera, zoom: number, anchor?: MapPoint): Camera => {
   const ratio = camera.zoom / zoom
   return {
@@ -75,7 +77,7 @@ function App() {
     setOpenPanel(null)
     dispatch({ type: 'selectState', id: null })
   }
-  const zoomMap = (factor: number, anchor?: MapPoint, smooth = false) => {
+  const zoomMap = (factor: number, anchor?: MapPoint, smooth = true) => {
     const running = zoomAnimation.current
     const current = running?.camera ?? camera
     const target = Math.max(.65, Math.min(7, (smooth ? running?.target ?? current.zoom : current.zoom) * factor))
@@ -103,7 +105,7 @@ function App() {
       const distance = Math.log(animation.target / animation.camera.zoom)
       const done = Math.abs(distance) < .001
       // Time-based easing stays consistent on different refresh rates.
-      const amount = 1 - Math.exp(-Math.max(0, time - animation.time) / 70)
+      const amount = 1 - Math.exp(-Math.max(0, time - animation.time) / ZOOM_EASING_MS)
       const zoom = done ? animation.target : animation.camera.zoom * Math.exp(distance * amount)
       animation.camera = cameraAtZoom(animation.camera, zoom, animation.anchor)
       animation.time = time
