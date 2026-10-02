@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { project } from '../game/data'
 import { routeFeatures, terrainFeatures } from '../game/terrainContent'
 import type { TerrainDetail, TerrainFeature } from '../game/terrainContent'
@@ -18,7 +19,7 @@ function softPath(points: readonly Point[]) {
   }
   return `${path}L${points.at(-1)!.join(',')}`
 }
-const colors = { mountain:'#786956',hill:'#998258',desert:'#b98a41',steppe:'#92945c',forest:'#557443',palm:'#657e44',marsh:'#588e7d',fertile:'#5e8451',coastal:'#7d9656',road:'#967b50',river:'#6193a4',pass:'#967b50' }
+const colors = { mountain:'#786956',hill:'#998258',desert:'#b98a41',steppe:'#92945c',forest:'#557443',palm:'#657e44',marsh:'#588e7d',fertile:'#5e8451',coastal:'#7d9656' }
 
 // Overlapping transparent brush marks feather to zero instead of outlining a
 // constant-width tube. Taper and lateral variation follow each authored region.
@@ -80,7 +81,10 @@ function corridorSymbols(feature: TerrainFeature) {
 }
 const illustrated = terrainFeatures.map(feature=>({feature,symbols:corridorSymbols(feature)}))
 // Washes are shared across detail levels so crossfades never stack their colour.
-const washes = terrainFeatures.filter(feature => feature.detail === 'regional').map(feature => ({ feature, marks: corridorWash(feature) }))
+const washes = terrainFeatures.filter(feature => feature.detail === 'regional').map(feature => ({
+  feature,
+  artwork: corridorWash(feature).map((p, i) => <ellipse key={i} cx={p.x} cy={p.y} rx={p.rx} ry={p.ry} transform={`rotate(${p.rotation} ${p.x} ${p.y})`} fill={`url(#terrain-wash-${feature.type})`}/>),
+}))
 const routes = routeFeatures.filter(feature=>feature.type==='river').map(feature=>({feature,path:feature.provinceId ? `M${feature.points.map(project).map(p=>p.join(',')).join('L')}` : softPath(feature.points.map(project))}))
 
 export function TerrainSymbols() {
@@ -118,12 +122,12 @@ export function TerrainSymbols() {
   </>
 }
 
-export function TerrainLayer({zoom,scale,override,sceneryPrototype=false}:{zoom:number;scale:number;override?:MapLevel;sceneryPrototype?:boolean}) {
+export const TerrainLayer = memo(function TerrainLayer({zoom,scale,override,sceneryPrototype=false}:{zoom:number;scale:number;override?:MapLevel;sceneryPrototype?:boolean}) {
   const weights=terrainWeights(zoom,override)
   const washStrength = weights.macro * .9 + weights.regional + weights.local * (7 / 6)
   return <g className="map-terrain" aria-hidden="true" pointerEvents="none" clipPath="url(#physical-land)">
-    <g className="terrain-washes">{washes.map(({feature: f, marks}) => <g key={f.id} className={`terrain-wash terrain-${f.type}`} opacity={f.opacity * washStrength} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}>
-      {marks.map((p, i) => <ellipse key={i} cx={p.x} cy={p.y} rx={p.rx} ry={p.ry} transform={`rotate(${p.rotation} ${p.x} ${p.y})`} fill={`url(#terrain-wash-${f.type})`}/>)}
+    <g className="terrain-washes">{washes.map(({feature: f, artwork}) => <g key={f.id} className={`terrain-wash terrain-${f.type}`} opacity={f.opacity * washStrength} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}>
+      {artwork}
     </g>)}</g>
     {(['macro','regional','local'] as TerrainDetail[]).map(detail=><g key={detail} className={`terrain-detail terrain-${detail}`} data-terrain-detail={detail} style={{opacity:weights[detail]}}>
       {illustrated.filter(({feature})=>feature.detail===detail).map(({feature:f,symbols})=><g key={f.id} className={`terrain-region terrain-${f.type}`} data-terrain={f.id} data-state={f.stateId} opacity={f.opacity}
@@ -134,4 +138,4 @@ export function TerrainLayer({zoom,scale,override,sceneryPrototype=false}:{zoom:
     <g className="terrain-canals detail-fade" style={{opacity:weights.regional+weights.local}} clipPath="url(#babylonia-relief)">{routes.filter(({feature})=>feature.provinceId==='babylonia'&&feature.detail==='regional'&&feature.type==='river').map(({feature:f,path})=><path key={f.id} d={path} className="map-river map-canal" style={{strokeWidth:f.width}} opacity={f.opacity}><title>{f.name}</title></path>)}</g>
     <g className="terrain-tributaries" style={{opacity:weights.local}}>{routes.filter(({feature})=>feature.type==='river'&&(!feature.provinceId||feature.detail==='local')).map(({feature:f,path})=><path key={f.id} d={path} className="map-river tributary" strokeWidth={f.width} style={f.provinceId?{strokeWidth:f.width}:undefined} opacity={f.opacity} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}/>)}</g>
   </g>
-}
+})

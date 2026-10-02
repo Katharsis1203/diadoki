@@ -9,6 +9,7 @@ export const INITIAL_CAMERA = { x: 584, y: 497, zoom: 2.3 }
 export type Camera = typeof INITIAL_CAMERA
 export type MapLabel = { id: string; text: string; x: number; y: number; size: number; priority: number; kind: 'state' | 'province' | 'city' | 'dominion' | 'local'; alternatives?: readonly {x:number;y:number}[] }
 export type LabelBox = {left:number;right:number;top:number;bottom:number}
+export const boxesOverlap = (a: LabelBox, b: LabelBox) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 const smooth = (a:number,b:number,value:number) => {const t=Math.max(0,Math.min(1,(value-a)/(b-a)));return t*t*(3-2*t)}
 export function terrainWeights(zoom:number,override?:MapLevel) {
   if(override) return {macro:override==='dominion'?1:0,regional:override==='province'?1:0,local:override==='state'?1:0}
@@ -42,7 +43,7 @@ export function visibleLabels(labels: readonly MapLabel[], scale: number, obstac
     const height=lines.length*label.size*1.15/scale
     for(const at of [label,...label.alternatives??[]]) {
       const box={left:at.x-width/2-3/scale,right:at.x+width/2+3/scale,top:at.y-label.size/scale,bottom:at.y+height-label.size/scale}
-      if(occupied.some(other=>box.left<other.right&&box.right>other.left&&box.top<other.bottom&&box.bottom>other.top))continue
+      if(occupied.some(other=>boxesOverlap(box,other)))continue
       occupied.push(box);result.push({...label,x:at.x,y:at.y});break
     }
   }

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { SceneryObject } from '../game/babyloniaScenery'
 
 // All symbols share a bottom-centre origin (0,0). Ink, lit upper-left faces
@@ -79,12 +80,17 @@ export function ScenerySymbols() {
   </>
 }
 
+const ScenerySprite = memo(function ScenerySprite({object}:{object:SceneryObject}) {
+  const {placement:p,x,y,size,opacity} = object
+  return <g data-scenery={p.id} data-asset={p.asset} data-state={p.asset==='settlement'?p.stateId:undefined} data-tier={p.asset==='settlement'?p.tier:undefined} data-capital={p.asset==='settlement'?p.isCapital:undefined} data-range={p.rangeId} data-ground-y={p.position[1]} data-anchor-x={x} data-anchor-y={y} opacity={opacity} transform={`translate(${x} ${y}) scale(${size})`}>
+    {p.asset==='settlement'&&<title>{p.name}{p.isCapital?' · province capital':''}</title>}
+    <ellipse className="scenery-shadow" cx="4" cy="1.5" rx={p.asset==='settlement'?23:19} ry="3.5"/>
+    <use href={`#scenery-${p.asset==='settlement'?p.tier:p.asset}-${p.asset==='settlement'&&p.tier==='city'?(p.isCapital?0:1+(p.variant??0)%2):p.variant??0}`} x="-24" y="-40" width="48" height="40"/>
+  </g>
+})
+
 export function BabyloniaScenery({objects}:{objects:readonly SceneryObject[]}) {
   return <g className="map-scenery" aria-hidden="true" pointerEvents="none">
-    {objects.map(({placement:p,x,y,size,opacity})=><g key={p.id} data-scenery={p.id} data-asset={p.asset} data-state={p.asset==='settlement'?p.stateId:undefined} data-tier={p.asset==='settlement'?p.tier:undefined} data-capital={p.asset==='settlement'?p.isCapital:undefined} data-range={p.rangeId} data-ground-y={p.position[1]} data-anchor-x={x} data-anchor-y={y} opacity={opacity} transform={`translate(${x} ${y}) scale(${size})`}>
-      {p.asset==='settlement'&&<title>{p.name}{p.isCapital?' · province capital':''}</title>}
-      <ellipse className="scenery-shadow" cx="4" cy="1.5" rx={p.asset==='settlement'?23:19} ry="3.5"/>
-      <use href={`#scenery-${p.asset==='settlement'?p.tier:p.asset}-${p.asset==='settlement'&&p.tier==='city'?(p.isCapital?0:1+(p.variant??0)%2):p.variant??0}`} x="-24" y="-40" width="48" height="40"/>
-    </g>)}
+    {objects.map(object=><ScenerySprite key={object.placement.id} object={object}/>)}
   </g>
 }

@@ -18,13 +18,15 @@ export const ownerName = (id: string) => factions.find((f) => f.id === id)?.name
 export const stateIncome = (p: TerritoryState) => p.income + p.buildings.market * 4
 export const stateDefense = (p: TerritoryState) => p.defense + p.buildings.fort * 3
 export const controlled = (s: GameState) => s.states.filter((p) => p.owner === PLAYER)
-export const income = (s: GameState) => controlled(s).reduce((total, p) => total + stateIncome(p), 0)
+export const income = (s: GameState) => s.states.reduce((total, p) => total + (p.owner === PLAYER ? stateIncome(p) : 0), 0)
 export const victoryTarget = (s: GameState) => Math.floor(s.states.length / 2) + 1
-export const phase = (s: GameState) => controlled(s).length === 0 ? 'defeat'
-  : controlled(s).length >= victoryTarget(s) ? 'victory' : s.battle ? 'battle' : 'campaign'
-export const selectedState = (s: GameState) => s.states.find((p) => p.id === s.selectedStateId)
-export const selectedProvince = (s: GameState) => s.provinces.find((p) => p.id === selectedState(s)?.provinceId)
-export const leader = (s: GameState) => s.commanders.find((c) => c.id === s.selectedCommanderId && c.faction === PLAYER)
+export const phase = (s: GameState) => {
+  const count = controlled(s).length
+  return count === 0 ? 'defeat' : count >= victoryTarget(s) ? 'victory' : s.battle ? 'battle' : 'campaign'
+}
+export const selectedState = (s: Pick<GameState, 'states' | 'selectedStateId'>) => s.states.find((p) => p.id === s.selectedStateId)
+export const selectedProvince = (s: Pick<GameState, 'states' | 'selectedStateId' | 'provinces'>) => s.provinces.find((p) => p.id === selectedState(s)?.provinceId)
+export const leader = (s: Pick<GameState, 'commanders' | 'selectedCommanderId'>) => s.commanders.find((c) => c.id === s.selectedCommanderId && c.faction === PLAYER)
 export const recruit = (s: GameState) => s.recruitables.find((c) => c.homeState === s.selectedStateId)
 const strength = (c: Commander) => c.attack + c.defense + c.speed + c.leadership + Math.floor(c.troops / 4)
 
@@ -47,7 +49,8 @@ export function movementPath(s: GameState, targetId: string) {
 }
 
 export function unavailable(s: GameState, action: CampaignAction): string | null {
-  if (phase(s) === 'victory' || phase(s) === 'defeat') return 'The campaign has ended. Start a new game.'
+  const campaignPhase = phase(s)
+  if (campaignPhase === 'victory' || campaignPhase === 'defeat') return 'The campaign has ended. Start a new game.'
   if (s.battle) return 'Resolve the active battle first.'
   if (s.orders < 1) return 'No orders remain. End the turn to receive three more.'
   const p = selectedState(s)
@@ -94,14 +97,15 @@ export function battlePreview(s: GameState, plan: Exclude<BattlePlan, 'retreat'>
 export function gameReducer(s: GameState, action: Action): GameState {
   if (action.type === 'reset') return createInitialState()
   if (action.type === 'selectState') {
-    if (s.battle || (action.id !== null && !s.states.some((p) => p.id === action.id))) return s
+    if (s.battle || s.selectedStateId === action.id || (action.id !== null && !s.states.some((p) => p.id === action.id))) return s
     return { ...s, selectedStateId: action.id }
   }
   if (action.type === 'selectCommander') {
-    if (s.battle || !s.commanders.some((c) => c.id === action.id && c.faction === PLAYER)) return s
+    if (s.battle || s.selectedCommanderId === action.id || !s.commanders.some((c) => c.id === action.id && c.faction === PLAYER)) return s
     return { ...s, selectedCommanderId: action.id }
   }
-  if (phase(s) === 'victory' || phase(s) === 'defeat') return s
+  const campaignPhase = phase(s)
+  if (campaignPhase === 'victory' || campaignPhase === 'defeat') return s
   if (action.type === 'resolve') {
     if (!s.battle) return s
     const b = s.battle, p = s.states.find((item) => item.id === b.stateId)!
@@ -122,8 +126,9 @@ export function gameReducer(s: GameState, action: Action): GameState {
   }
   if (action.type === 'endTurn') {
     if (s.battle) return s
-    const next = { ...s, turn: s.turn + 1, orders: 3, treasury: s.treasury + income(s) }
-    return record(next, ...factions.filter((f) => f.id !== PLAYER).map((f) => `${f.name} holds position (${s.states.filter((p) => p.owner === f.id).length} states).`), `Received ${income(s)} income and three orders.`)
+    const received = income(s)
+    const next = { ...s, turn: s.turn + 1, orders: 3, treasury: s.treasury + received }
+    return record(next, ...factions.filter((f) => f.id !== PLAYER).map((f) => `${f.name} holds position (${s.states.filter((p) => p.owner === f.id).length} states).`), `Received ${received} income and three orders.`)
   }
   if (unavailable(s, action.type)) return s
   const p = selectedState(s)!, next = { ...s, orders: s.orders - 1 }
@@ -162,9 +167,11 @@ export const provinceControl = (s: GameState, p: Province): string | null => {
 export const provinceIncome = (s: GameState, p: Province) => provinceStates(s, p).reduce((total, state) => total + stateIncome(state), 0)
 export function provinceSummary(s: GameState, p: Province) {
   const states = provinceStates(s, p)
-  return { stateCount: states.length, owner: provinceControl(s, p), income: provinceIncome(s, p),
-    playerIncome: states.filter((state) => state.owner === PLAYER).reduce((sum, state) => sum + stateIncome(state), 0),
-    playerStates: states.filter((state) => state.owner === PLAYER).length,
+  const held = states.filter(state => state.owner === PLAYER)
+  const owners = new Set(states.map(state => state.owner))
+  return { stateCount: states.length, owner: owners.size === 1 ? [...owners][0] : null, income: states.reduce((sum, state) => sum + stateIncome(state), 0),
+    playerIncome: held.reduce((sum, state) => sum + stateIncome(state), 0),
+    playerStates: held.length,
     garrison: states.reduce((sum, state) => sum + state.garrison, 0),
     settlements: states.reduce((sum, state) => sum + state.settlementIds.length, 0),
   }
@@ -181,7 +188,7 @@ export function dominionSummary(s: GameState, factionId: string) {
     garrison: states.reduce((total, state) => total + state.garrison, 0), borderPath: provinceBorderPath(stateIds),
   }
 }
-export function dominionLabel(s: GameState, factionId: string) {
+export function dominionLabel(s: Pick<GameState, 'states'>, factionId: string) {
   const states = s.states.filter((p) => p.owner === factionId)
   if (!states.length) return null
   const x = states.reduce((sum, p) => sum + p.labelX, 0) / states.length, y = states.reduce((sum, p) => sum + p.labelY, 0) / states.length

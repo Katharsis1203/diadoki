@@ -17,6 +17,8 @@ npm run lint
 npm run build
 ```
 
+`npm run benchmark:map` measures the core geometry and map-preparation operations. See [PERFORMANCE.md](PERFORMANCE.md) for the system audit, measured improvements, verification and remaining SVG painting costs. Gameplay and the existing illustration are preserved by these optimizations.
+
 ## Play
 
 You lead the Seleucids from Babylon with eleven states across Babylonia and Susiana, 220 coin (including opening income), and three orders. Select a state on the map. Develop friendly territory for 25 coin, build a fort for 30 coin, recruit a local commander for 40 coin, or march an army through your connected states. To invade, put your commander in a friendly state bordering the target. Every successful campaign action uses one order; rejected actions spend nothing.

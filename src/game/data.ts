@@ -74,6 +74,17 @@ export const factions: Faction[] = [
   { id: 'antigonus', name: 'Antigonids', color: '#aa463b', seatSettlementId: 'mazaca-city' },
 ]
 
+// These derived outlines and references never change with gameplay. Compute
+// them once, then copy mutable arrays when starting/resetting a campaign.
+const initialProvinces: Province[] = provinceDefinitions.map(({ id, name, mainSettlementId }) => {
+  const stateIds = stateDefinitions.filter(state => state.provinceId === id).map(state => state.id)
+  return { id, name, mainSettlementId, stateIds, borderPath: provinceBorderPath(stateIds), labelX: provinceLabels[id][0], labelY: provinceLabels[id][1] }
+})
+const initialDistricts = Object.fromEntries(stateDefinitions.map(state => [state.id, {
+  neighbors: stateNeighbors(state.id), shape: stateShape(state.id),
+  settlementIds: settlementDefinitions.filter(place => place.stateId === state.id).map(place => place.id),
+}]))
+
 export const createInitialState = (): GameState => ({
   turn: 1,
   treasury: 220, // 122 opening coin + 98 opening income across eleven states.
@@ -82,14 +93,11 @@ export const createInitialState = (): GameState => ({
     `You lead the Seleucids from Babylon. ${provinceDefinitions.length} provinces contain ${stateDefinitions.length} states, each with its own borders and garrison.`,
     `Turn 1: 122 opening coin + 98 income. Control ${Math.floor(stateDefinitions.length / 2) + 1} of ${stateDefinitions.length} states to win. Select a state; zoom in to see districts and cities.`,
   ],
-  provinces: provinceDefinitions.map(({ id, name, mainSettlementId }) => {
-    const stateIds = stateDefinitions.filter((s) => s.provinceId === id).map((s) => s.id)
-    return { id, name, mainSettlementId, stateIds, borderPath: provinceBorderPath(stateIds), labelX: provinceLabels[id][0], labelY: provinceLabels[id][1] }
-  }),
+  provinces: initialProvinces.map(province => ({ ...province, stateIds: [...province.stateIds] })),
   states: stateDefinitions.map((s) => ({
-    id: s.id, name: s.name, provinceId: s.provinceId, owner: s.owner, income: s.income, defense: s.defense, terrain: s.terrain, landscape: s.landscape, neighbors: stateNeighbors(s.id), shape: stateShape(s.id),
+    id: s.id, name: s.name, provinceId: s.provinceId, owner: s.owner, income: s.income, defense: s.defense, terrain: s.terrain, landscape: s.landscape, neighbors: [...initialDistricts[s.id].neighbors], shape: initialDistricts[s.id].shape,
     labelX: stateLabels[s.id][0], labelY: stateLabels[s.id][1],
-    settlementIds: settlementDefinitions.filter((place) => place.stateId === s.id).map((place) => place.id),
+    settlementIds: [...initialDistricts[s.id].settlementIds],
     buildings: { market: s.development, fort: 0 }, garrison: 26, resolvedEventIds: [],
   })),
   settlements: settlementDefinitions.map(({ position, ...place }) => {

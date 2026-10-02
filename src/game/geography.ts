@@ -1,41 +1,56 @@
 import { mapVertices, stateRings } from './stateGeometry.ts'
 
-export const stateShape = (id: string) => stateRings[id]
-  .map((index) => mapVertices[index].join(',')).join(' ')
-
-const borderEdges = (ring: readonly number[]) => new Set(ring.map((vertex, i) => {
-  const next = ring[(i + 1) % ring.length]
-  return vertex < next ? `${vertex}:${next}` : `${next}:${vertex}`
+// Geometry is immutable campaign content. Prepare coordinates, extents and ink
+// once instead of rebuilding them for every label candidate or camera frame.
+const districts = Object.fromEntries(Object.entries(stateRings).map(([id, ring]) => {
+  const points = ring.map(index => mapVertices[index])
+  return [id, {
+    points,
+    shape: points.map(point => point.join(',')).join(' '),
+    left: Math.min(...points.map(point => point[0])), right: Math.max(...points.map(point => point[0])),
+    top: Math.min(...points.map(point => point[1])), bottom: Math.max(...points.map(point => point[1])),
+  }]
 }))
-const edges = Object.fromEntries(Object.entries(stateRings).map(([id, ring]) => [id, borderEdges(ring)]))
-// Sharing a complete edge permits conquest; touching at a corner does not.
-export const stateNeighbors = (id: string) => Object.keys(stateRings)
-  .filter((other) => other !== id && [...edges[id]].some((edge) => edges[other].has(edge)))
+export const stateShape = (id: string) => districts[id].shape
 
-const sharedEdges = new Map<string, { vertices: [number, number]; states: string[] }>()
+const sharedEdges = new Map<string, { segment: string; states: string[] }>()
 for (const [id, ring] of Object.entries(stateRings)) {
   ring.forEach((a, i) => {
     const b = ring[(i + 1) % ring.length]
     const key = a < b ? `${a}:${b}` : `${b}:${a}`
     const edge = sharedEdges.get(key)
     if (edge) edge.states.push(id)
-    else sharedEdges.set(key, { vertices: [a, b], states: [id] })
+    else sharedEdges.set(key, { segment: `M${mapVertices[a].join(',')}L${mapVertices[b].join(',')}`, states: [id] })
   })
 }
+
+const neighbors = Object.fromEntries(Object.keys(stateRings).map(id => [id, new Set<string>()]))
+for (const { states: [a, b] } of sharedEdges.values()) {
+  if (!b) continue
+  neighbors[a].add(b)
+  neighbors[b].add(a)
+}
+const adjacency = Object.fromEntries(Object.keys(stateRings).map(id => [id,
+  Object.keys(stateRings).filter(other => neighbors[id].has(other)),
+]))
+// Preserve content order and give each game its own editable adjacency array.
+export const stateNeighbors = (id: string) => [...adjacency[id]]
 
 // A province owns no independent polygon. Its outline is exactly the exterior
 // of the named child states, including coastlines and campaign edges.
 export function provinceBorderPath(stateIds: readonly string[]) {
   const children = new Set(stateIds)
   return [...sharedEdges.values()].filter((edge) => edge.states.filter((id) => children.has(id)).length === 1)
-    .map(({ vertices: [a, b] }) => `M${mapVertices[a].join(',')}L${mapVertices[b].join(',')}`).join('')
+    .map(edge => edge.segment).join('')
 }
 
 export function pointInState(point: readonly [number, number], id: string) {
-  const ring = stateRings[id].map((i) => mapVertices[i])
+  const { points: ring, left, right, top, bottom } = districts[id]
+  const [x, y] = point
+  if (x < left || x > right || y < top || y > bottom) return false
   let inside = false
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [a, b] = [ring[i], ring[j]], [x, y] = point
+    const a = ring[i], b = ring[j]
     if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside
   }
   return inside
@@ -51,8 +66,7 @@ export function mapBorderPaths(states: readonly { id: string; owner: string; pro
   const outlines = new Map(states.map((s) => [s.id, [] as string[]]))
   const frontiers: string[] = [], provinces: string[] = [], divisions: string[] = []
   for (const edge of sharedEdges.values()) {
-    const [a, b] = edge.vertices.map((index) => mapVertices[index].join(','))
-    const segment = `M${a}L${b}`
+    const segment = edge.segment
     const [first, second] = edge.states.map((id) => byId.get(id)!)
     if (second) {
       if (first.provinceId !== second.provinceId) provinces.push(segment)

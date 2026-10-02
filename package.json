@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "generate:map": "node --experimental-strip-types scripts/generate-map.mjs",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "benchmark:map": "node --experimental-strip-types scripts/benchmark-map.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { project } from '../game/data'
 import { rangeGround } from '../game/babyloniaRanges'
 import type { MapProjection } from '../game/mapProjection'
@@ -32,7 +33,7 @@ export function SurfaceSymbols() {
     </radialGradient>)}</>
 }
 
-export function BabyloniaSurface({level}:{level:MapLevel}) {
+export const BabyloniaSurface = memo(function BabyloniaSurface({level}:{level:MapLevel}) {
   return <g className="babylonia-surface" pointerEvents="none" aria-hidden="true" clipPath="url(#physical-land)">
     {earthPatches.map(({at,rx,ry,color,angle},i)=>{
       const [x,y]=project(at)
@@ -54,11 +55,11 @@ export function BabyloniaSurface({level}:{level:MapLevel}) {
       })}
     </g>
   </g>
-}
+})
 
 // At overview, a single connected outline per ridge replaces fine peak art.
 // The ground is projected first; the small relief rise stays upright.
-export function OverviewRanges({projection}:{projection:MapProjection}) {
+export const OverviewRanges = memo(function OverviewRanges({projection}:{projection:MapProjection}) {
   return <g className="overview-ranges" pointerEvents="none" aria-hidden="true">
     {rangeGround.map(({id,mapPoints})=>{
       const points=mapPoints.map(projection.point)
@@ -70,4 +71,4 @@ export function OverviewRanges({projection}:{projection:MapProjection}) {
       </g>
     })}
   </g>
-}
+})
