@@ -29,11 +29,21 @@ Play begins with a view fitted to Babylonia. Select a state to highlight it and 
 
 Babylon has a compact urban hinterland including Borsippa, the strongest starting economy in Babylonia, and a prominent seat marker. Sippar, Nippur, Uruk and Ur remain separate states; Larsa is a secondary settlement within Uruk. Mountains, foothills, deserts, woodland, wetlands and fertile valleys form authored geographic corridors beneath the political map. Terrain is illustrative and does not change campaign rules.
 
-The **2.5D** toggle compares a Babylonia prototype with the flat map. The prototype gently compresses the ground while keeping city silhouettes, palms, reeds and eastern relief upright. Scenery uses stable bottom-centre anchors and depth ordering; state geometry and gameplay stay unchanged. Adjust perspective in `mapProjection.ts`, and asset sizes/placements in `babyloniaScenery.ts`; see [MAP_GEOGRAPHY.md](MAP_GEOGRAPHY.md) for the layer architecture and tuning details.
+The **2.5D** toggle compares upright illustrated scenery with the flat map. It gently compresses the ground while keeping city silhouettes, palms, reeds and mountain relief upright. Scenery uses stable bottom-centre anchors and depth ordering; state geometry and gameplay stay unchanged. Adjust perspective in `mapProjection.ts`, and asset sizes/placements in `babyloniaScenery.ts`; see [MAP_GEOGRAPHY.md](MAP_GEOGRAPHY.md) for the layer architecture and tuning details.
 
 Babylonia's visual settlement hierarchy gives each of its seven states one primary centre. Babylon is the province's sole capital and has the largest, distinctive city asset regardless of development. Other centres now derive their size and complexity from existing market development: level 0 homestead/camp, 1 village, 2 fortified town, and 3+ city. Sippar starts as a village; Nippur, Uruk, Ur, Diyala and Chaldaea start as small homesteads/camps. Existing named settlement locations are preserved. Borsippa and Larsa remain secondary references. Capital status is separate from settlement tier, and centre names appear once near the artwork. The editable thresholds and scales live in `settlementAppearance.ts`; the renderer only reads existing values and changes no campaign rules. This visual pass is confined to Babylonia.
 
-Babylonia is the first province with individually authored district geography: selected Tigris and Euphrates reaches form shared borders, curved canal districts organize the urban states, and Chaldaea follows the dryland margin. Palm groves and reed beds form irregular patches beside richer fertile and marsh ground, with small cultivated parcels and subtle paper grain. The open plain is flanked by overlapping eastern mountain ranges and foothills, simplified to connected silhouettes in overview. Stronger faction tints and borders identify ownership, with lighter fills at province/local scale to reveal terrain. State details explain each landscape. Other provinces retain their earlier detailed terrain pending separate passes; see [MAP_GEOGRAPHY.md](MAP_GEOGRAPHY.md).
+Babylonia is the first province with individually authored district geography: selected Tigris and Euphrates reaches form shared borders, curved canal districts organize the urban states, and Chaldaea follows the dryland margin. Palm groves and reed beds form irregular patches beside richer fertile and marsh ground, with small cultivated parcels and subtle paper grain. The open plain is flanked by overlapping eastern mountain ranges and foothills, simplified to connected silhouettes in overview. Stronger faction tints and borders identify ownership, with lighter fills at province/local scale to reveal terrain. State details explain each landscape. Other provinces retain their earlier local vegetation and settlement detail; see [MAP_GEOGRAPHY.md](MAP_GEOGRAPHY.md).
+
+### Italy-to-Ganges terrain foundation
+
+**Overview** fits the full theatre from Italy and Sicily through Greece, Macedonia, Thrace, Anatolia, the Levant, Egypt/Cyrenaica, Mesopotamia, Persia, Bactria/Sogdiana, Arachosia/Gedrosia and the Indus/Punjab to **northern India through the Ganges plain**. Drag and wheel-zoom to inspect these regions. The deeper Balkans, steppes, Tibetan interior and southern India remain bare coastline context. Geographic region captions outside the playable scenario are navigation aids, not new provinces.
+
+The physical foundation contains **88 ridge sections and 62 named river features**. Alps/Apennines, Pindus/Greek and island massifs, Taurus/Pontic/Armenian/Caucasus uplands, Zagros/Alborz, eastern desert hills, Hindu Kush/Pamir, Sulaiman/Makran and Himalaya use overlapping upright relief, foothills and shared rocky ground, with openings for valleys and passes. The Nile, Aegean rivers, Kura/Araxes, Tigris/Euphrates tributaries, Oxus/Jaxartes, Kabul/Indus tributaries and Ganges system supply geographic guides for future boundaries. Babylon's existing scenery stays in place and its plain stays open. Overview simplifies relief; closer views reveal upright peaks, with offscreen scenery, ground sections and waterways culled.
+
+Natural Earth coastlines and selected rivers are embedded locally; missing major courses use documented illustrative vertices. There are no runtime map downloads or new rendering dependencies. `worldTerrain.ts` holds the theatre extent, region captions and extended ridge axes; `terrainBackbone.ts` combines the physical network and sampling rules. `riverCourses.ts` and `worldRiverCourses.ts` store imported watercourses. `npm run generate:world-terrain` reproduces the extended source data (Node and Python 3 required at authoring time); see [MAP_GEOGRAPHY.md](MAP_GEOGRAPHY.md) for sources and tuning.
+
+This expands the terrain foundation, while the existing **48 playable states in ten provinces**, their geometry, adjacency, ownership and game rules remain unchanged. Local settlement/vegetation prototypes are still limited to Babylon. New province/state borders can subsequently be authored around the physical network.
 
 Choose your field commander before invading. Battle plans show their exact outcome, troop losses, and treasury change. Resolve or retreat before issuing more orders. End turn to collect state income and refresh your three orders. Control 25 of 48 states to win. New game resets the session.
 
@@ -68,7 +78,9 @@ This creates a choice between a difficult early capital assault to gain full inc
 
 - `src/game/geographyContent.ts`: named districts, province membership, initial owners, settlements and geographic cues.
 - `src/game/data.ts`: scenario assembly and state types.
-- `src/game/mapGeometry.ts`: embedded physical map features.
+- `src/game/mapGeometry.ts`: original territorial waterways and lakes.
+- `src/game/worldMapGeometry.ts`: expanded embedded coastline context and additional lakes.
+- `src/game/worldTerrain.ts`: Italy-to-Ganges extent, geographic captions and extended ridge axes.
 - `src/game/stateGeometry.ts`: shared state mesh and interior label positions.
 - `scripts/generate-map.mjs`: reproducible district/province subdivision (`npm run generate:map`).
 - `src/game/geography.ts`: state outlines, adjacency and the three border scales derived from shared edges.
@@ -76,6 +88,10 @@ This creates a choice between a difficult early capital assault to gain full inc
 - `src/components/CampaignMap.tsx`: data-driven territorial rendering and principal-seat symbols.
 - `src/game/mapView.ts`: zoom levels and label collision handling.
 - `src/game/terrainContent.ts`: authored relief corridors, canals and local waterways.
+- `src/game/terrainBackbone.ts`: whole-campaign ridge axes, valley clearances and joined river network.
+- `src/game/riverCourses.ts` and `worldRiverCourses.ts`: embedded additional Natural Earth watercourses.
+- `scripts/import-world-geography.mjs`: reproducible physical-data import (`npm run generate:world-terrain`).
+- `src/components/CoreTerrain.tsx`: shared rocky ground and simplified overview relief.
 - `src/game/babyloniaGeography.ts`: shared river reaches, canal/dryland cuts and state landscape descriptions.
 - `src/game/babyloniaTerrain.ts`: state-specific terrain patches and schematic irrigation channels.
 - `src/components/TerrainLayer.tsx`: non-interactive SVG terrain with three detail levels.

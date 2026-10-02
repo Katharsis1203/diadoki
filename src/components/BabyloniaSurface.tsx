@@ -1,7 +1,5 @@
 import { memo } from 'react'
 import { project } from '../game/data'
-import { rangeGround } from '../game/babyloniaRanges'
-import type { MapProjection } from '../game/mapProjection'
 import type { MapLevel } from '../game/mapView'
 
 // Broad, fixed earth patches are intentionally unequal and not tiled. The
@@ -54,21 +52,5 @@ export const BabyloniaSurface = memo(function BabyloniaSurface({level}:{level:Ma
         return <path key={i} d="M-6 0q3 -2 7 -1m-4 3q3 -1 5 -.6M2 -3l1.2 -.3" transform={`translate(${x} ${y}) rotate(${angle})`} stroke="#9c7941" strokeOpacity=".35" strokeWidth=".35" fill="none"/>
       })}
     </g>
-  </g>
-})
-
-// At overview, a single connected outline per ridge replaces fine peak art.
-// The ground is projected first; the small relief rise stays upright.
-export const OverviewRanges = memo(function OverviewRanges({projection}:{projection:MapProjection}) {
-  return <g className="overview-ranges" pointerEvents="none" aria-hidden="true">
-    {rangeGround.map(({id,mapPoints})=>{
-      const points=mapPoints.map(projection.point)
-      const top=points.map(([x,y],i)=>[x-12,y-(i%3===0?14:8)] as const)
-      const base=points.toReversed().map(([x,y])=>[x+10,y+5] as const)
-      return <g key={id} data-range={id}>
-        <path d={`M${[...top,...base].map(p=>p.join(',')).join('L')}Z`} fill="#9b886a" fillOpacity=".62" stroke="#796951" strokeWidth=".6"/>
-        <path d={`M${top.map(p=>p.join(',')).join('L')}`} stroke="#e4cda0" strokeWidth="1.1" fill="none"/>
-      </g>
-    })}
   </g>
 })

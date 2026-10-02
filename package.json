@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "generate:world-terrain": "node scripts/import-world-geography.mjs",
     "generate:map": "node --experimental-strip-types scripts/generate-map.mjs",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "benchmark:map": "node --experimental-strip-types scripts/benchmark-map.mjs"

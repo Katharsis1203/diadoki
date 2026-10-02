@@ -58,7 +58,5 @@ export const terrainFeatures: TerrainFeature[] = [...regions.flatMap((region) =>
 
 export const routeFeatures: TerrainFeature[] = [
   ...babyloniaWaterways,
-  {id:'diyala-river',name:'Diyala',type:'river',detail:'local',points:[[45.8,34.8],[45.55,34.1],[45.2,33.7],[44.8,33.2],[44.55,33.1]],width:.8,scale:1,rotation:0,opacity:.65,zoomVisibility:[3.2,7]},
-  {id:'karun-river',name:'Karun',type:'river',detail:'local',points:[[49.3,32.2],[48.9,31.85],[48.65,31.35],[48.2,30.8],[47.8,30.5]],width:.9,scale:1,rotation:0,opacity:.65,zoomVisibility:[3.2,7]},
   {id:'babylon-canal',name:'Babylon canal',type:'river',detail:'local',points:[[44.34,32.4],[44.75,32.15],[45.23,32.13]],width:.5,scale:1,rotation:0,opacity:.55,zoomVisibility:[3.2,7]},
 ]

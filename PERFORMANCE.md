@@ -48,12 +48,28 @@ SVG layout, rasterization and painting remain the largest cost during zoom. In t
 
 An isolated trial disabling river-wash blur suggested painting savings, but also changed the illustration. The existing wash, grain, mountain density, lighting and ownership blending were retained. A future measured pass could evaluate caching broad ground washes as transparent textures, with memory budgets, zoom-quality checks and a visual comparison. Keep interactive polygons, boundaries, labels and upright scenery separate. This is a proposal, not a new dependency or renderer in this pass.
 
+### Regional terrain follow-up (earlier build)
+
+The initial regional terrain pass added 23 ridge sections (including the three existing Babylon-adjacent sections) and 17 named river features. Placement generation and terrain brush marks run once; scene preparation remains cached during pan, and caption/asset visibility uses the viewport. Rocky valley gaps use precomputed brush placement instead of another large SVG mask. Existing local washes are not duplicated beneath the new relief, and no per-object filters or dependencies are added.
+
+The expanded production bundle is **427.97 kB / 150.20 kB gzip**. The same three-sample browser check measured median JavaScript totals of **155 ms pan, 447 ms zoom and 408 ms selection** for 120 inputs. Total task times were **4.79 s, 6.08 s and 1.67 s**, respectively. These are observational measurements rather than FPS guarantees; broader terrain coverage increases SVG painting work, especially during pan. The earlier audit tables describe the smaller pre-expansion scene. Geometry regeneration remains byte-identical, and the expanded test suite has 53 passing tests.
+
+### Italy-to-Ganges expansion
+
+The full theatre now has **88 ridge sections, 62 named river features and 1,176 stable scenery placements** (including Babylon's existing centres/vegetation). Expanding the map does not expand the playable state model. Core preparation benchmark medians remain approximately 0.10 ms for border paths, 0.17 ms for province fit and 0.09 ms for preparing all scenery; pan reuses the prepared scene. The seven regional browser checks draw **41–131 scenery objects**, rather than all placements.
+
+Actual viewport bounds account for SVG meet scaling and vertical compression. Upright scenery, river artwork and ground sections are culled; river bounds and brush artwork are prepared once. Border masks consider only rivers near playable states and cover the viewport. Paper grain is also bounded to the viewport and clipped to land. Coastlines outside the theatre are simplified. The production build separates application code (**371.67 kB / 123.08 kB gzip**) from embedded physical data (**260.39 kB / 113.48 kB gzip**), keeping each chunk below the build warning threshold. Physical data has its own cacheable build chunk; it is embedded application data, with no external runtime mapping service or new dependency.
+
+An isolated three-sample production check using the same 120-input protocol measured median JavaScript totals of **241 ms pan, 605 ms zoom and 413 ms selection**, with total task times **8.82 s, 10.22 s and 2.69 s**. This larger scene increases SVG painting work; these numbers do not establish an FPS improvement. The earlier audit/regional tables describe smaller scenes. Further coastline/wash rasterization or spatial partitioning would need separate visual and memory-budget validation.
+
+The current suite has **55 passing tests**. Browser verification includes the entire Overview, seven distant regional views, both projections, cursor anchoring and mobile theatre fit, as well as the existing 48-state selection, ownership/conquest and ten-province checks. Both physical-data regeneration and playable mesh regeneration are byte-identical against the same source cache.
+
 ## Verification
 
-- 49 tests cover campaign behaviour, geographic coverage and shared edges, point-query parity at vertices/edges/interiors, independent resets, selection no-ops and fresh scene data after development/ownership/commander changes.
+- The original audit had 49 tests covering campaign behaviour, geographic coverage and shared edges, point-query parity at vertices/edges/interiors, independent resets, selection no-ops and fresh scene data after development/ownership/commander changes.
 - TypeScript/production build and ESLint pass.
 - Exported vertices, rings, labels and coordinate outlines compare exactly with the pre-audit geometry; map regeneration remains deterministic.
-- Province and overview screenshots compare pixel-for-pixel with the pushed build.
+- The original audit province/overview screenshots compared pixel-for-pixel with the pushed build. The terrain expansions intentionally change relief and coastline context; playable geometry remains identical.
 - Browser checks cover all 48 polygon selections, all ten province fits, label collisions, conquest/frontier updates, pan, flat/2.5D switching, upright anchors/depth order, seven Babylonian centres, wheel directions/limits/cursor anchoring and responsive controls.
 
 No new combat, income, fortification, terrain movement, AI, city-founding or development-project mechanics were activated. The planned mechanics remain in the README.

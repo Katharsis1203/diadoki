@@ -81,7 +81,7 @@ function corridorSymbols(feature: TerrainFeature) {
 }
 const illustrated = terrainFeatures.map(feature=>({feature,symbols:corridorSymbols(feature)}))
 // Washes are shared across detail levels so crossfades never stack their colour.
-const washes = terrainFeatures.filter(feature => feature.detail === 'regional').map(feature => ({
+const washes = terrainFeatures.filter(feature => feature.detail === 'regional'&&!['mountain','hill'].includes(feature.type)).map(feature => ({
   feature,
   artwork: corridorWash(feature).map((p, i) => <ellipse key={i} cx={p.x} cy={p.y} rx={p.rx} ry={p.ry} transform={`rotate(${p.rotation} ${p.x} ${p.y})`} fill={`url(#terrain-wash-${feature.type})`}/>),
 }))
@@ -130,7 +130,7 @@ export const TerrainLayer = memo(function TerrainLayer({zoom,scale,override,scen
       {artwork}
     </g>)}</g>
     {(['macro','regional','local'] as TerrainDetail[]).map(detail=><g key={detail} className={`terrain-detail terrain-${detail}`} data-terrain-detail={detail} style={{opacity:weights[detail]}}>
-      {illustrated.filter(({feature})=>feature.detail===detail).map(({feature:f,symbols})=><g key={f.id} className={`terrain-region terrain-${f.type}`} data-terrain={f.id} data-state={f.stateId} opacity={f.opacity}
+      {illustrated.filter(({feature})=>feature.detail===detail&&(!sceneryPrototype||!['mountain','hill'].includes(feature.type))).map(({feature:f,symbols})=><g key={f.id} className={`terrain-region terrain-${f.type}`} data-terrain={f.id} data-state={f.stateId} opacity={f.opacity}
         mask={f.provinceId?undefined:'url(#outside-babylonia-relief)'} clipPath={f.stateId?`url(#state-clip-${f.stateId})`:undefined}>
         {symbols.filter(p=>!sceneryPrototype||!inSceneryZone([p.x,p.y])).map((p,i)=>{const size=Math.min(p.size,(detail==='local'?12:15)/scale);return <use key={i} href={`#terrain-${f.type}`} transform={`translate(${p.x} ${p.y}) rotate(${p.rotation})`} x={-size} y={-size*1.2} width={size*2} height={size*2}/>})}
       </g>)}

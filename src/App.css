@@ -51,6 +51,8 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .map-labels .state-label { letter-spacing: .015em; }
 .map-labels .dominion-label { font-weight: 500; font-style: italic; letter-spacing: .1em; }
 .map-labels .city-label { fill: #806c4c; font-style: italic; }
+.map-region-labels .region-label { fill: #6d5b3d; font-style: italic; letter-spacing: .045em; }
+.map-region-labels .river-label { fill: #377484; font-style: italic; }
 .map-labels .active-state { font-weight: bold; fill: #4c351f; }
 .map-settlements { fill: #806a48; stroke: #f3e6c7; stroke-width: .7; }
 .map-settlements rect, .map-settlements circle { vector-effect: non-scaling-stroke; }

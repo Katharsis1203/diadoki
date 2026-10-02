@@ -3,7 +3,9 @@ import type { PointerEvent } from 'react'
 import { createInitialState, factions, gameReducer, selectedState, controlled, victoryTarget } from './game/engine'
 import { CampaignMap } from './components/CampaignMap'
 import { CampaignHud, CampaignPanels } from './components/CampaignPanels'
-import { INITIAL_CAMERA, OVERVIEW_CAMERA, focusCamera, MAP_HEIGHT, MAP_WIDTH, mapLevel } from './game/mapView'
+import { INITIAL_CAMERA, worldOverviewCamera, focusCamera, MAP_HEIGHT, MAP_WIDTH, MIN_ZOOM, MAX_ZOOM, mapLevel } from './game/mapView'
+import { worldRegionAt } from './game/worldTerrain'
+import { territoryAt } from './game/geography'
 import type { Camera, MapLevel } from './game/mapView'
 import { factionSymbols } from './game/factionSymbols'
 import { cameraPan, mapProjection } from './game/mapProjection'
@@ -47,7 +49,10 @@ function App() {
   const fitPanel = !!state && !openPanel && !game.battle
   const fittedCamera = useMemo(() => focusCamera(game.states.filter(p=>p.provinceId===focusedProvince.id).map(p=>p.shape),viewport,fitPanel,perspective),
     [game.states,focusedProvince,viewport,fitPanel,perspective])
-  const camera = cameraMode==='province' ? fittedCamera : freeCamera
+  const fittedOverview=useMemo(()=>worldOverviewCamera(viewport,perspective),[viewport,perspective])
+  const camera = cameraMode==='province' ? fittedCamera : cameraMode==='overview'?fittedOverview:freeCamera
+  const viewedProvince=province??(cameraMode==='province'?focusedProvince:game.provinces.find(p=>p.id===territoryAt([camera.x,camera.y],game.states)?.provinceId))
+  const viewedName=viewedProvince?.name??worldRegionAt(camera.x,camera.y)?.name??'Geographic context'
   const terrainLevel = stateDetail ?? (cameraMode === 'province' ? 'province' : undefined)
   const level = mapLevel(camera.zoom, terrainLevel)
   const select = useCallback((id: string) => { setOpenPanel(null); dispatch({ type: 'selectState', id }) }, [])
@@ -60,7 +65,7 @@ function App() {
     setFocusedProvinceId('babylonia'); setCameraMode('province')
   }, [])
   const zoomMap = (factor: number, anchor?: MapPoint) => {
-    const zoom = Math.max(.65, Math.min(7, camera.zoom * factor))
+    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, camera.zoom * factor))
     if (zoom === camera.zoom) return
     drag.current = null
     setStateDetail(null)
@@ -68,7 +73,7 @@ function App() {
     setCamera(cameraAtZoom(camera, zoom, anchor))
   }
   const focusProvince = useCallback(() => {setFocusedProvinceId(province?.id??focusedProvinceId);setCameraMode('province');setStateDetail(null)}, [province,focusedProvinceId])
-  const overview = () => {setCamera(OVERVIEW_CAMERA);setCameraMode('overview');setStateDetail(null);dismiss()}
+  const overview = () => {setCameraMode('overview');setStateDetail(null);dismiss()}
   const startDrag = (event: PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return
     suppressClick.current = false
@@ -98,7 +103,7 @@ function App() {
       <main className="game-layout">
         <section className="map-panel" aria-labelledby="map-title">
           <h2 id="map-title" className="sr-only">A divided empire · Campaign map</h2>
-          <div className="map-location" aria-live="polite"><p className="eyebrow">{level==='dominion'?'The successor kingdoms':level==='state'?'Local inspection':'Province campaign'}</p><p>{level==='dominion'?'A divided empire':province?.name??focusedProvince.name}<small>{level!=='dominion'&&`${(province??focusedProvince).stateIds.length} states · ${game.orders} orders available`}</small></p></div>
+          <div className="map-location" aria-live="polite"><p className="eyebrow">{level==='dominion'?'The successor kingdoms':level==='state'?'Local inspection':viewedProvince?'Province campaign':'Terrain inspection'}</p><p>{level==='dominion'?(camera.zoom<.65?'Italy to the Ganges':'A divided empire'):viewedName}<small>{level!=='dominion'&&(viewedProvince?`${viewedProvince.stateIds.length} states · ${game.orders} orders available`:'Terrain foundation · Drag to explore')}</small></p></div>
           <CampaignMap game={game} camera={camera} level={level} terrainLevel={terrainLevel} perspective={perspective} onSelect={select} onBackground={dismiss} suppressClick={suppressClick}
             onZoom={zoomMap} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} />
         </section>
@@ -110,7 +115,7 @@ function App() {
         <div className="map-toolbar-actions">
           <div className="utility-actions"><button className="secondary" aria-expanded={openPanel === 'roster'} aria-controls={openPanel === 'roster' ? 'roster-panel' : undefined} disabled={!!game.battle} onClick={() => setOpenPanel(openPanel === 'roster' ? null : 'roster')}>Commanders</button><button className="secondary" aria-label="Command log" aria-expanded={openPanel === 'log'} aria-controls={openPanel === 'log' ? 'log-panel' : undefined} disabled={!!game.battle} onClick={() => setOpenPanel(openPanel === 'log' ? null : 'log')}><span className="log-full">Command log</span><span className="log-short" aria-hidden="true">Log</span></button></div>
           <p className="map-hint">{controlled(game).length} / {victoryTarget(game)} states to victory · Select a state · Drag to pan</p>
-          <div className="map-controls" aria-label="Map view controls"><button className="secondary perspective-toggle" aria-label="Babylonia 2.5D scenery" aria-pressed={perspective} onClick={()=>setPerspective(value=>!value)}>2.5D</button><button className="secondary province-view" onClick={focusProvince} aria-label="Focus province">Province</button><button className="secondary detail-toggle" aria-pressed={level === 'state'} onClick={() => setStateDetail(level === 'state' ? 'province' : 'state')}>Detail</button><button className="secondary" aria-label="Zoom out" disabled={camera.zoom <= .65} onClick={() => zoomMap(1 / 1.25)}>−</button><button className="secondary reset-view" aria-label="Dominion overview" onClick={overview}>Overview</button><button className="secondary" aria-label="Zoom in" disabled={camera.zoom >= 7} onClick={() => zoomMap(1.25)}>+</button></div>
+          <div className="map-controls" aria-label="Map view controls"><button className="secondary perspective-toggle" aria-label="2.5D map scenery" aria-pressed={perspective} onClick={()=>setPerspective(value=>!value)}>2.5D</button><button className="secondary province-view" onClick={focusProvince} aria-label="Focus province">Province</button><button className="secondary detail-toggle" aria-pressed={level === 'state'} onClick={() => setStateDetail(level === 'state' ? 'province' : 'state')}>Detail</button><button className="secondary" aria-label="Zoom out" disabled={camera.zoom <= MIN_ZOOM} onClick={() => zoomMap(1 / 1.25)}>−</button><button className="secondary reset-view" aria-label="Dominion overview" onClick={overview}>Overview</button><button className="secondary" aria-label="Zoom in" disabled={camera.zoom >= MAX_ZOOM} onClick={() => zoomMap(1.25)}>+</button></div>
         </div>
       </div>
       <footer className="map-attribution">Approximate campaign boundaries · <a href="https://www.naturalearthdata.com/downloads/50m-physical-vectors/" target="_blank" rel="noreferrer">Natural Earth</a></footer>

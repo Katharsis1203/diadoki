@@ -1,15 +1,19 @@
 import { memo } from 'react'
 import type { RefObject } from 'react'
 import type { GameState, Province, TerritoryState } from '../game/data'
-import { factions } from '../game/data'
+import { factions, project } from '../game/data'
 import { ownerName } from '../game/engine'
 import { mapBorderPaths } from '../game/geography'
-import { lakes, landPath, rivers } from '../game/mapGeometry'
+import { worldLandPath as landPath } from '../game/worldMapGeometry'
+import { physicalLakes as lakes } from '../game/physicalLand'
+import { coreRiverFootprints } from '../game/terrainBackbone'
 import type { MapProjection } from '../game/mapProjection'
 import { FactionSealSymbols } from './FactionSeals'
 import { TerrainSymbols } from './TerrainLayer'
 import { ScenerySymbols } from './BabyloniaScenery'
 import { SurfaceSymbols } from './BabyloniaSurface'
+import { boundsIntersect } from '../game/mapViewport'
+import type { LabelBox } from '../game/mapView'
 
 // Separate immutable geography/artwork from camera-dependent labels and size.
 // React can retain these SVG subtrees across pan and unrelated UI updates.
@@ -62,23 +66,33 @@ export const OwnershipLayer = memo(function OwnershipLayer({states}:{states:read
   )
 })
 
-export const PhysicalFeatures = memo(function PhysicalFeatures() {
+const riverArtwork=coreRiverFootprints.map(({river:r,bounds})=>({bounds,artwork:<g key={r.id} data-river={r.id}><title>{r.name}</title>
+  {r.source==='existing'?<path className="river-fertility" d={r.path}/>:<>
+    <path d={r.path} fill="none" stroke="#638553" strokeWidth="9" strokeOpacity=".055" strokeLinejoin="round"/>
+    <path d={r.path} fill="none" stroke="#638553" strokeWidth="4.5" strokeOpacity=".075" strokeLinejoin="round"/>
+  </>}
+  <path className="river-bank-light" d={r.path} style={{strokeWidth:r.width+.55}}/>
+  <path className="map-river" d={r.path} style={{strokeWidth:r.width}}/>
+</g>}))
+export const PhysicalFeatures = memo(function PhysicalFeatures({view}:{view:LabelBox}) {
   return (
-    <g className="map-physical-features" aria-hidden="true" clipPath="url(#physical-land)">
-      {rivers.map((r) => <g key={r.name}><path className="river-fertility" d={r.path}/><path className="river-bank-light" d={r.path}/><path className="map-river" d={r.path}/></g>)}
+    <g className="map-physical-features" aria-hidden="true" pointerEvents="none" clipPath="url(#physical-land)">
+      {riverArtwork.filter(r=>boundsIntersect(r.bounds,view)).map(r=>r.artwork)}
       {lakes.map((lake) => <path key={lake.name} className="map-lake" d={lake.path} />)}
     </g>
   )
 })
 
-export const WaterLabels = memo(function WaterLabels({projection,perspective}:{projection:MapProjection;perspective:boolean}) {
+export const WaterLabels = memo(function WaterLabels({projection,perspective,scale}:{projection:MapProjection;perspective:boolean;scale:number}) {
+  const fontSize=Math.max(17,12/scale)
   return (
     <g className="map-water-labels" aria-hidden="true" pointerEvents="none">{[
-      {text:'Mediterranean\nSea',at:[190,402] as const,angle:-12},{text:'Black Sea',at:[295,91] as const,angle:0},
-      {text:'Caspian Sea',at:[796,253] as const,angle:70},{text:'Persian Gulf',at:[755,606] as const,angle:24},
+      {text:'Mediterranean\nSea',at:project([22,33.3]),angle:-12},{text:'Black Sea',at:project([33.3,43.6]),angle:0},
+      {text:'Caspian Sea',at:project([51.2,42.4]),angle:70},{text:'Persian Gulf',at:[755,606] as const,angle:24},
+      {text:'Arabian Sea',at:project([65,20]),angle:0},{text:'Bay of Bengal',at:project([89.4,18.7]),angle:0},
     ].map(({text,at,angle})=>{
       const [x,y]=projection.point(at)
-      return <text key={text} className="water-label" x={x} y={y} transform={perspective?undefined:`rotate(${angle} ${x} ${y})`}>{text.split('\n').map((line,i)=><tspan key={i} x={x} dy={i?20:0}>{line}</tspan>)}</text>
+      return <text key={text} className="water-label" x={x} y={y} style={{fontSize}} transform={perspective?undefined:`rotate(${angle} ${x} ${y})`}>{text.split('\n').map((line,i)=><tspan key={i} x={x} dy={i?fontSize*1.2:0}>{line}</tspan>)}</text>
     })}</g>
   )
 })

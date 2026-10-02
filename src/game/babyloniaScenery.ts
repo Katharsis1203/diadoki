@@ -4,6 +4,7 @@ import { stateDefinitions } from './geographyContent.ts'
 import type { MapPoint, MapProjection } from './mapProjection.ts'
 import type { LabelBox, MapLevel } from './mapView.ts'
 import { babyloniaRanges } from './babyloniaRanges.ts'
+import { backbonePeaks, inCoreWater } from './terrainBackbone.ts'
 import { settlementAppearance } from './settlementAppearance.ts'
 import type { SettlementTier } from './settlementAppearance.ts'
 
@@ -27,8 +28,8 @@ export type SceneryPlacement = Placement & (
 )
 export const SCENERY_SCALE = 1
 const assetHeight = {city:28,fortress:28,village:16,homestead:12,mountain:36,hill:21,trees:34,reeds:24}
-// Illustration footprint in canonical map space: Babylonia and adjacent eastern
-// foothills. The existing engraved symbols remain elsewhere.
+// Footprint for the Babylon-only settlement/vegetation prototype. Major relief
+// now uses the shared campaign backbone; other local engraving stays intact.
 export const SCENERY_ZONE = { left: 530, top: 300, right: 755, bottom: 574 }
 export const inSceneryZone = ([x,y]: MapPoint) => x>=SCENERY_ZONE.left && x<=SCENERY_ZONE.right && y>=SCENERY_ZONE.top && y<=SCENERY_ZONE.bottom
 
@@ -88,11 +89,26 @@ export const babyloniaScenery: readonly SceneryPlacement[] = ([
 ] satisfies SceneryPlacement[]).toSorted((a,b)=>a.position[1]-b.position[1] || a.id.localeCompare(b.id))
 
 export type SceneryObject = { placement: SceneryPlacement; x: number; y: number; size: number; opacity: number; box: LabelBox }
+// Extend relief across the campaign without extending the Babylon-only
+// settlement/vegetation prototype. One depth order serves every province.
+export const campaignScenery: readonly SceneryPlacement[] = [...babyloniaScenery,
+  ...backbonePeaks.flatMap((peak,i)=>{
+    const {id,rangeId,position,scale,variant,normal}=peak
+    const offset=(distance:number):MapPoint=>[position[0]+normal[0]*distance,position[1]+normal[1]*distance]
+    const shoulder=offset(-4),foot=offset(6)
+    return [
+      {id,rangeId,asset:'mountain' as const,position,scale,variant},
+      ...(i%3===1&&!inCoreWater(shoulder,7)?[{id:`${id}-shoulder`,rangeId,asset:'mountain' as const,position:shoulder,scale:scale*.65,variant:((variant+1)%3) as 0|1|2}]:[]),
+      ...(i%3!==2&&!inCoreWater(foot,7)?[{id:`${id}-foot`,rangeId,asset:'hill' as const,position:foot,scale:scale*.82,variant:((variant+2)%3) as 0|1|2}]:[]),
+    ]
+  }),
+].toSorted((a,b)=>a.position[1]-b.position[1]||a.id.localeCompare(b.id))
+
 export function sceneryObjects(projection: MapProjection, zoom: number, scale: number, level: MapLevel, states?: readonly TerritoryState[]): SceneryObject[] {
   if (level==='dominion') return []
   const regional=Math.max(0,Math.min(1,(zoom-1.15)/.65))
   const local=level==='state'?Math.max(0,Math.min(1,(zoom-1.8)/1.0)):0
-  return babyloniaScenery.flatMap(authored=>{
+  return campaignScenery.flatMap(authored=>{
     const state=authored.asset==='settlement'?states?.find(s=>s.id===authored.stateId):undefined
     const placement: SceneryPlacement=authored.asset==='settlement'&&state ?
       {...authored,...settlementAppearance(state.buildings.market,authored.isCapital)} : authored
