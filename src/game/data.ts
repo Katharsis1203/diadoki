@@ -69,9 +69,9 @@ export type Settlement = { id: string; name: string; stateId: string; x: number;
 export const project = ([lon, lat]: readonly [number, number]): [number, number] => [60 + (lon - 29) * 33, 35 + (43 - lat) * 40]
 export const stateEvents = stateEventDefinitions
 export const factions: Faction[] = [
-  { id: 'babylon', name: 'Seleucids', color: '#94692d', seatSettlementId: 'babylon-city' },
-  { id: 'ptolemy', name: 'Ptolemies', color: '#466b79', seatSettlementId: 'damascus-city' },
-  { id: 'antigonus', name: 'Antigonids', color: '#8d5140', seatSettlementId: 'mazaca-city' },
+  { id: 'babylon', name: 'Seleucids', color: '#ad741b', seatSettlementId: 'babylon-city' },
+  { id: 'ptolemy', name: 'Ptolemies', color: '#23758a', seatSettlementId: 'damascus-city' },
+  { id: 'antigonus', name: 'Antigonids', color: '#aa463b', seatSettlementId: 'mazaca-city' },
 ]
 
 export const createInitialState = (): GameState => ({

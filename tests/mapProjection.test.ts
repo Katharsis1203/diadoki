@@ -69,14 +69,14 @@ test('scenery has stable anchors, bottom-centre footprints, depth order and geog
   assert.equal(JSON.stringify(game),before)
 })
 
-test('Babylonia has one primary centre per state and one capital, with distinct visual tiers',()=>{
+test('Babylonia has one primary centre per state and one capital, with development-based visual tiers',()=>{
   const game=createInitialState(), province=game.provinces.find(p=>p.id==='babylonia')!
   const primary=babyloniaScenery.filter(p=>p.asset==='settlement')
   assert.equal(primary.length,province.stateIds.length)
   assert.deepEqual(primary.map(p=>p.stateId).sort(),[...province.stateIds].sort())
   assert.deepEqual(primary.filter(p=>p.isCapital).map(p=>p.stateId),['babylon'])
   assert.equal(primary.find(p=>p.isCapital)!.settlementId,province.mainSettlementId)
-  assert.deepEqual([...new Set(primary.map(p=>p.tier))].sort(),['city','fortress','village'])
+  assert.deepEqual([...new Set(primary.map(p=>p.tier))].sort(),['city','homestead','village'])
   for(const p of primary){
     assert.equal(territoryAt(p.position,game.states)?.state.id,p.stateId)
     assert.equal(p.name,game.states.find(s=>s.id===p.stateId)!.name)
@@ -87,8 +87,10 @@ test('Babylonia has one primary centre per state and one capital, with distinct 
     assert.equal(rendered.length,province.stateIds.length)
     assert.ok(rendered.every(o=>o.opacity===1))
     const capital=rendered.find(o=>o.placement.asset==='settlement'&&o.placement.isCapital)!
-    const fortresses=rendered.filter(o=>o.placement.asset==='settlement'&&o.placement.tier==='fortress')
+    const homesteads=rendered.filter(o=>o.placement.asset==='settlement'&&o.placement.tier==='homestead')
     const villages=rendered.filter(o=>o.placement.asset==='settlement'&&o.placement.tier==='village')
-    assert.ok(fortresses.every(o=>o.size<capital.size&&villages.every(v=>v.size<o.size)))
+    assert.equal(homesteads.length,5)
+    assert.equal(villages.length,1)
+    assert.ok(villages.every(o=>o.size<capital.size&&homesteads.every(v=>v.size<o.size)))
   }
 })

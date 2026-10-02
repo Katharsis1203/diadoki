@@ -18,7 +18,7 @@ function softPath(points: readonly Point[]) {
   }
   return `${path}L${points.at(-1)!.join(',')}`
 }
-const colors = { mountain:'#927b59',hill:'#a99770',desert:'#c2a166',steppe:'#aea274',forest:'#80906a',palm:'#849064',marsh:'#87a9a0',fertile:'#91a77b',coastal:'#a6ad81',road:'#967b50',river:'#6193a4',pass:'#967b50' }
+const colors = { mountain:'#786956',hill:'#998258',desert:'#b98a41',steppe:'#92945c',forest:'#557443',palm:'#657e44',marsh:'#588e7d',fertile:'#5e8451',coastal:'#7d9656',road:'#967b50',river:'#6193a4',pass:'#967b50' }
 
 // Overlapping transparent brush marks feather to zero instead of outlining a
 // constant-width tube. Taper and lateral variation follow each authored region.
@@ -64,7 +64,7 @@ function corridorSymbols(feature: TerrainFeature) {
     return [{x,y,size,rotation:mark.rotation}]
   })
   if (feature.detail==='macro' || ['fertile','coastal'].includes(feature.type)) return []
-  const points=feature.points.map(project), step=feature.detail==='regional'?17:10
+  const points=feature.points.map(project), step=feature.type==='desert'?(feature.detail==='regional'?28:20):feature.detail==='regional'?17:10
   let walked=0, next=step*.35
   const out:{x:number;y:number;size:number;rotation:number}[]=[]
   for(let i=1;i<points.length;i++){
@@ -88,7 +88,7 @@ export function TerrainSymbols() {
     <clipPath id="babylonia-relief"><polygon points={provinceOutlines.babylonia.map(p=>p.join(',')).join(' ')}/></clipPath>
     <mask id="outside-babylonia-relief" maskUnits="userSpaceOnUse" x="-1000" y="-1000" width="3000" height="3000"><rect x="-1000" y="-1000" width="3000" height="3000" fill="white"/><polygon points={provinceOutlines.babylonia.map(p=>p.join(',')).join(' ')} fill="black"/></mask>
     {Object.entries(colors).map(([type, color]) => {
-      const opacity = type === 'fertile' || type === 'marsh' ? .16 : .11
+      const opacity = type === 'fertile' || type === 'marsh' ? .32 : type === 'mountain' ? .25 : .19
       return <radialGradient key={type} id={`terrain-wash-${type}`}>
         <stop stopColor={color} stopOpacity={opacity}/>
         <stop offset=".35" stopColor={color} stopOpacity={opacity * .65}/>
@@ -97,18 +97,18 @@ export function TerrainSymbols() {
       </radialGradient>
     })}
     <filter id="river-wash-soften" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB"><feGaussianBlur stdDeviation="2"/></filter>
-    <linearGradient id="ridge-relief" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#f0e2bd"/><stop offset="1" stopColor="#aa9067"/></linearGradient>
+    <linearGradient id="ridge-relief" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#decca0"/><stop offset="1" stopColor="#897557"/></linearGradient>
     <symbol id="terrain-mountain" viewBox="-10 -12 20 20">
       <path d="M-7 5Q0 1 8 4L10 7L-5 7Z" fill="#806847" opacity=".13"/>
-      <path d="M-9 5L-2 -9L8 5Z" fill="#c6b58e" stroke="#887551" strokeWidth=".65" strokeLinejoin="round"/>
-      <path d="M-9 5L-2 -9L-2 -1L1 5Z" fill="#f3e7c8"/>
-      <path d="M-2 -9L8 5L1 5L-2 -1Z" fill="#99835c" opacity=".38"/>
+      <path d="M-9 5L-2 -9L8 5Z" fill="#bda27a" stroke="#6d5c45" strokeWidth=".65" strokeLinejoin="round"/>
+      <path d="M-9 5L-2 -9L-2 -1L1 5Z" fill="#e1cfab"/>
+      <path d="M-2 -9L8 5L1 5L-2 -1Z" fill="#837055" opacity=".38"/>
       <path d="M-7 4l3 -3m5 2l2 2M-2 -9L-2 -1" fill="none" stroke="#826e4b" strokeWidth=".5" opacity=".55"/>
     </symbol>
-    <symbol id="terrain-hill" viewBox="-10 -12 20 20"><path d="M-9 5Q-5 -6 0 -3Q5 -1 9 5" fill="url(#ridge-relief)" stroke="#998560" strokeWidth=".55"/><path d="M-5 2Q-2 -3 0 -3" fill="none" stroke="#eee0bd" strokeWidth="1"/></symbol>
+    <symbol id="terrain-hill" viewBox="-10 -12 20 20"><path d="M-9 5Q-5 -6 0 -3Q5 -1 9 5" fill="url(#ridge-relief)" stroke="#998560" strokeWidth=".55"/><path d="M-5 2Q-2 -3 0 -3" fill="none" stroke="#decca0" strokeWidth="1"/></symbol>
     <symbol id="terrain-desert" viewBox="-10 -12 20 20"><path d="M-9 2Q-1 -5 9 2Q1 1 -6 4Z" fill="#bea16d" opacity=".23"/><path d="M-9 2Q-1 -5 9 2M-6 6q5 -2 10 0" fill="none" stroke="#aa8e5e" strokeWidth=".55"/></symbol>
     <symbol id="terrain-steppe" viewBox="-10 -12 20 20"><path d="M-9 2q3 -2 7 0m4 3q3 -2 6 -1M-3 -3l1 -2l1 2" fill="none" stroke="#9b9168" strokeWidth=".6"/></symbol>
-    <symbol id="terrain-forest" viewBox="-10 -12 20 20"><path d="M-4 4l10 2" stroke="#7d7b55" opacity=".18" strokeWidth="2"/><path d="M-5 5V-4M3 5V-7" stroke="#797253" strokeWidth=".7"/><path d="M-8 0q-3 -5 2 -6q2 -4 5 0q4 5 0 7ZM0 -1q-3 -5 1 -7q2 -4 5 0q4 5 0 7Z" fill="#91a17b" stroke="#6e805b" strokeWidth=".5"/></symbol>
+    <symbol id="terrain-forest" viewBox="-10 -12 20 20"><path d="M-4 4l10 2" stroke="#7d7b55" opacity=".18" strokeWidth="2"/><path d="M-5 5V-4M3 5V-7" stroke="#797253" strokeWidth=".7"/><path d="M-8 0q-3 -5 2 -6q2 -4 5 0q4 5 0 7ZM0 -1q-3 -5 1 -7q2 -4 5 0q4 5 0 7Z" fill="#738757" stroke="#4f693e" strokeWidth=".5"/></symbol>
     <symbol id="terrain-palm" viewBox="-10 -12 20 20">
       <path d="M-3 6l7 1" stroke="#7d7b55" strokeWidth="1.5" opacity=".15"/>
       <path d="M0 6Q1 0 0 -5" fill="none" stroke="#8a7651" strokeWidth="1"/>
@@ -120,7 +120,7 @@ export function TerrainSymbols() {
 
 export function TerrainLayer({zoom,scale,override,sceneryPrototype=false}:{zoom:number;scale:number;override?:MapLevel;sceneryPrototype?:boolean}) {
   const weights=terrainWeights(zoom,override)
-  const washStrength = weights.macro * .7 + weights.regional + weights.local * (7 / 6)
+  const washStrength = weights.macro * .9 + weights.regional + weights.local * (7 / 6)
   return <g className="map-terrain" aria-hidden="true" pointerEvents="none" clipPath="url(#physical-land)">
     <g className="terrain-washes">{washes.map(({feature: f, marks}) => <g key={f.id} className={`terrain-wash terrain-${f.type}`} opacity={f.opacity * washStrength} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}>
       {marks.map((p, i) => <ellipse key={i} cx={p.x} cy={p.y} rx={p.rx} ry={p.ry} transform={`rotate(${p.rotation} ${p.x} ${p.y})`} fill={`url(#terrain-wash-${f.type})`}/>)}

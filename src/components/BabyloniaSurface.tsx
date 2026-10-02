@@ -1,0 +1,73 @@
+import { project } from '../game/data'
+import { rangeGround } from '../game/babyloniaRanges'
+import type { MapProjection } from '../game/mapProjection'
+import type { MapLevel } from '../game/mapView'
+
+// Broad, fixed earth patches are intentionally unequal and not tiled. The
+// same map-space anchors serve the surface and the upright ridge silhouettes.
+const earthPatches = [
+  {at:[43.9,32.4],rx:35,ry:42,color:'dry',angle:-18},
+  {at:[44.2,31.2],rx:26,ry:35,color:'dry',angle:15},
+  {at:[45.5,33.0],rx:26,ry:24,color:'soil',angle:-25},
+  {at:[45.0,32.0],rx:24,ry:16,color:'fertile',angle:25},
+  {at:[46.4,31.3],rx:27,ry:18,color:'marsh',angle:24},
+  {at:[46.9,30.7],rx:30,ry:17,color:'marsh',angle:-12},
+  {at:[48.0,32.8],rx:32,ry:20,color:'rock',angle:30},
+  {at:[48.8,32.0],rx:26,ry:34,color:'soil',angle:30},
+] as const
+const fields = [
+  {id:'sippar-fields',state:'sippar',at:[44.06,33.21],angle:20},
+  {id:'babylon-fields-west',state:'babylon',at:[44.20,32.60],angle:-12},
+  {id:'babylon-fields-south',state:'babylon',at:[44.62,32.20],angle:25},
+  {id:'nippur-fields',state:'nippur',at:[45.63,32.15],angle:18},
+  {id:'uruk-fields',state:'uruk',at:[45.89,31.48],angle:-15},
+] as const
+const soilMarks = [[43.93,31.65,15],[44.30,30.83,-8],[44.43,30.55,22],[45.87,33.30,30],[47.10,32.76,-10]] as const
+
+export function SurfaceSymbols() {
+  return <>{Object.entries({dry:'#b17f38',soil:'#ad8654',fertile:'#608550',marsh:'#568e7c',rock:'#786b57'}).map(([id,color])=>
+    <radialGradient key={id} id={`surface-${id}`}>
+      <stop stopColor={color} stopOpacity=".22"/><stop offset=".4" stopColor={color} stopOpacity=".12"/>
+      <stop offset=".75" stopColor={color} stopOpacity=".035"/><stop offset="1" stopColor={color} stopOpacity="0"/>
+    </radialGradient>)}</>
+}
+
+export function BabyloniaSurface({level}:{level:MapLevel}) {
+  return <g className="babylonia-surface" pointerEvents="none" aria-hidden="true" clipPath="url(#physical-land)">
+    {earthPatches.map(({at,rx,ry,color,angle},i)=>{
+      const [x,y]=project(at)
+      return <ellipse key={i} cx={x} cy={y} rx={rx} ry={ry} transform={`rotate(${angle} ${x} ${y})`} fill={`url(#surface-${color})`}/>
+    })}
+    <g className="cultivated-patches" opacity={level==='dominion'?0:level==='state'?.75:.58}>
+      {fields.map(({id,state,at,angle})=>{
+        const [x,y]=project(at)
+        return <g key={id} data-field={id} clipPath={`url(#state-clip-${state})`}>
+          <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+            <path d="M-5 -3L-.8 -3.5L-.3 .5L-4.5 1ZM.1 -2.5L4.7 -2L4.1 2L.7 1.5ZM-4 2L-.2 1.7L.8 5L-3.3 5.3Z" fill="#74854c" fillOpacity=".26" stroke="#697448" strokeOpacity=".25" strokeWidth=".3"/>
+            <path d="M-4.4 -1.8l3.2 -.3m-3 1.4l3.1 -.3M1 -1l3 .4m-2.8 .8l2.7 .3M-3.2 3l2.6 -.2m-2.3 1.2l2.5 -.2" fill="none" stroke="#526e42" strokeOpacity=".45" strokeWidth=".25"/>
+          </g>
+        </g>
+      })}
+      {soilMarks.map(([lon,lat,angle],i)=>{
+        const [x,y]=project([lon,lat])
+        return <path key={i} d="M-6 0q3 -2 7 -1m-4 3q3 -1 5 -.6M2 -3l1.2 -.3" transform={`translate(${x} ${y}) rotate(${angle})`} stroke="#9c7941" strokeOpacity=".35" strokeWidth=".35" fill="none"/>
+      })}
+    </g>
+  </g>
+}
+
+// At overview, a single connected outline per ridge replaces fine peak art.
+// The ground is projected first; the small relief rise stays upright.
+export function OverviewRanges({projection}:{projection:MapProjection}) {
+  return <g className="overview-ranges" pointerEvents="none" aria-hidden="true">
+    {rangeGround.map(({id,mapPoints})=>{
+      const points=mapPoints.map(projection.point)
+      const top=points.map(([x,y],i)=>[x-12,y-(i%3===0?14:8)] as const)
+      const base=points.toReversed().map(([x,y])=>[x+10,y+5] as const)
+      return <g key={id} data-range={id}>
+        <path d={`M${[...top,...base].map(p=>p.join(',')).join('L')}Z`} fill="#9b886a" fillOpacity=".62" stroke="#796951" strokeWidth=".6"/>
+        <path d={`M${top.map(p=>p.join(',')).join('L')}`} stroke="#e4cda0" strokeWidth="1.1" fill="none"/>
+      </g>
+    })}
+  </g>
+}

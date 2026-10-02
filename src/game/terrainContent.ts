@@ -1,5 +1,6 @@
 import type { LonLat } from './geographyContent'
 import { babyloniaTerrainFeatures, babyloniaWaterways } from './babyloniaTerrain.ts'
+import { rangeGround } from './babyloniaRanges.ts'
 
 export type TerrainDetail = 'macro' | 'regional' | 'local'
 export type TerrainType = 'mountain' | 'hill' | 'desert' | 'steppe' | 'forest' | 'palm' | 'marsh' | 'fertile' | 'coastal' | 'river'
@@ -50,7 +51,10 @@ export const terrainFeatures: TerrainFeature[] = [...regions.flatMap((region) =>
   ...region, id:`${region.id}-${detail}`, detail, scale:region.scale ?? 1, rotation:0,
   opacity: detail==='macro' ? .42 : detail==='regional' ? .6 : .7,
   zoomVisibility: detail==='macro' ? [.65,1.85] as const : detail==='regional' ? [1.1,4.3] as const : [3.2,7] as const,
-}))), ...babyloniaTerrainFeatures]
+}))), ...babyloniaTerrainFeatures, ...rangeGround.map(({id,points})=>({
+  id:`eastern-rock-${id}`,name:'Eastern rocky slopes',type:'mountain' as const,detail:'regional' as const,
+  points,width:20,scale:1,rotation:0,opacity:.85,zoomVisibility:[.65,7] as const,marks:[],
+}))]
 
 export const routeFeatures: TerrainFeature[] = [
   ...babyloniaWaterways,

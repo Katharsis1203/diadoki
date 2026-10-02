@@ -10,8 +10,6 @@ import { cameraPan, mapProjection } from './game/mapProjection'
 import type { MapPoint } from './game/mapProjection'
 import './App.css'
 
-const ZOOM_EASING_MS = 110
-
 const cameraAtZoom = (camera: Camera, zoom: number, anchor?: MapPoint): Camera => {
   const ratio = camera.zoom / zoom
   return {
@@ -32,14 +30,6 @@ function App() {
   const [viewport,setViewport] = useState({width:window.innerWidth,height:window.innerHeight})
   const drag = useRef<{ x: number; y: number; cameraX: number; cameraY: number; scale: number; moved: boolean } | null>(null)
   const suppressClick = useRef(false)
-  const zoomAnimation = useRef<{ camera: Camera; target: number; anchor?: MapPoint; frame: number; time: number } | null>(null)
-  const stopZoom = () => {
-    if (zoomAnimation.current) cancelAnimationFrame(zoomAnimation.current.frame)
-    zoomAnimation.current = null
-  }
-  useEffect(() => () => {
-    if (zoomAnimation.current) cancelAnimationFrame(zoomAnimation.current.frame)
-  }, [])
   useEffect(() => {
     const resize = () => setViewport({width:window.innerWidth,height:window.innerHeight})
     window.addEventListener('resize',resize)
@@ -59,7 +49,7 @@ function App() {
   const terrainLevel = stateDetail ?? (cameraMode === 'province' ? 'province' : undefined)
   const level = mapLevel(camera.zoom, terrainLevel)
   const summary = province ? provinceSummary(game, province) : null
-  const select = (id: string) => { stopZoom(); setOpenPanel(null); dispatch({ type: 'selectState', id }) }
+  const select = (id: string) => { setOpenPanel(null); dispatch({ type: 'selectState', id }) }
   const campaignPhase = phase(game)
   const ended = campaignPhase === 'victory' || campaignPhase === 'defeat'
   const commander = leader(game)
@@ -77,49 +67,18 @@ function App() {
     setOpenPanel(null)
     dispatch({ type: 'selectState', id: null })
   }
-  const zoomMap = (factor: number, anchor?: MapPoint, smooth = true) => {
-    const running = zoomAnimation.current
-    const current = running?.camera ?? camera
-    const target = Math.max(.65, Math.min(7, (smooth ? running?.target ?? current.zoom : current.zoom) * factor))
-    if (target === current.zoom && !running) return
+  const zoomMap = (factor: number, anchor?: MapPoint) => {
+    const zoom = Math.max(.65, Math.min(7, camera.zoom * factor))
+    if (zoom === camera.zoom) return
     drag.current = null
-    // Seed the free camera before the first animation frame leaves province focus.
-    setCamera(current)
     setStateDetail(null)
     setCameraMode('free')
-    if (!smooth || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      stopZoom()
-      setCamera(cameraAtZoom(current, target, anchor))
-      return
-    }
-    if (running) {
-      // Accumulate wheel input against the destination, including direction changes.
-      running.target = target
-      running.anchor = anchor
-      return
-    }
-    const animation = { camera: current, target, anchor, frame: 0, time: performance.now() }
-    zoomAnimation.current = animation
-    const step = (time: number) => {
-      if (zoomAnimation.current !== animation) return
-      const distance = Math.log(animation.target / animation.camera.zoom)
-      const done = Math.abs(distance) < .001
-      // Time-based easing stays consistent on different refresh rates.
-      const amount = 1 - Math.exp(-Math.max(0, time - animation.time) / ZOOM_EASING_MS)
-      const zoom = done ? animation.target : animation.camera.zoom * Math.exp(distance * amount)
-      animation.camera = cameraAtZoom(animation.camera, zoom, animation.anchor)
-      animation.time = time
-      setCamera(animation.camera)
-      if (done) zoomAnimation.current = null
-      else animation.frame = requestAnimationFrame(step)
-    }
-    animation.frame = requestAnimationFrame(step)
+    setCamera(cameraAtZoom(camera, zoom, anchor))
   }
-  const focusProvince = () => {stopZoom();setFocusedProvinceId(province?.id??focusedProvinceId);setCameraMode('province');setStateDetail(null)}
-  const overview = () => {stopZoom();setCamera(OVERVIEW_CAMERA);setCameraMode('overview');setStateDetail(null);dismiss()}
+  const focusProvince = () => {setFocusedProvinceId(province?.id??focusedProvinceId);setCameraMode('province');setStateDetail(null)}
+  const overview = () => {setCamera(OVERVIEW_CAMERA);setCameraMode('overview');setStateDetail(null);dismiss()}
   const startDrag = (event: PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return
-    stopZoom()
     suppressClick.current = false
     const rect = event.currentTarget.getBoundingClientRect()
     drag.current = {
@@ -153,7 +112,7 @@ function App() {
         </div>
         <div className="turn-actions">
           <button onClick={() => dispatch({ type: 'endTurn' })} disabled={!!game.battle || ended}>End turn</button>
-          <button className="secondary" onClick={() => { stopZoom(); dispatch({ type: 'reset' }); setOpenPanel(null); setStateDetail(null); setFocusedProvinceId('babylonia');setCameraMode('province') }}>New game</button>
+          <button className="secondary" onClick={() => { dispatch({ type: 'reset' }); setOpenPanel(null); setStateDetail(null); setFocusedProvinceId('babylonia');setCameraMode('province') }}>New game</button>
         </div>
       </header>
       {ended && <section className="outcome" role="status"><h2>{campaignPhase === 'victory' ? 'A kingdom secured' : 'Your kingdom has fallen'}</h2><p>{campaignPhase === 'victory' ? 'You hold a majority of the states. This campaign is complete.' : 'You no longer control any states.'} Start a new game to play again.</p></section>}
@@ -205,7 +164,7 @@ function App() {
         <div className="map-toolbar-actions">
           <div className="utility-actions"><button className="secondary" aria-expanded={openPanel === 'roster'} aria-controls={openPanel === 'roster' ? 'roster-panel' : undefined} disabled={!!game.battle} onClick={() => setOpenPanel(openPanel === 'roster' ? null : 'roster')}>Commanders</button><button className="secondary" aria-label="Command log" aria-expanded={openPanel === 'log'} aria-controls={openPanel === 'log' ? 'log-panel' : undefined} disabled={!!game.battle} onClick={() => setOpenPanel(openPanel === 'log' ? null : 'log')}><span className="log-full">Command log</span><span className="log-short" aria-hidden="true">Log</span></button></div>
           <p className="map-hint">{controlled(game).length} / {victoryTarget(game)} states to victory · Select a state · Drag to pan</p>
-          <div className="map-controls" aria-label="Map view controls"><button className="secondary perspective-toggle" aria-label="Babylonia 2.5D scenery" aria-pressed={perspective} onClick={()=>{stopZoom();setPerspective(value=>!value)}}>2.5D</button><button className="secondary province-view" onClick={focusProvince} aria-label="Focus province">Province</button><button className="secondary detail-toggle" aria-pressed={level === 'state'} onClick={() => setStateDetail(level === 'state' ? 'province' : 'state')}>Detail</button><button className="secondary" aria-label="Zoom out" disabled={camera.zoom <= .65} onClick={() => zoomMap(1 / 1.25)}>−</button><button className="secondary reset-view" aria-label="Dominion overview" onClick={overview}>Overview</button><button className="secondary" aria-label="Zoom in" disabled={camera.zoom >= 7} onClick={() => zoomMap(1.25)}>+</button></div>
+          <div className="map-controls" aria-label="Map view controls"><button className="secondary perspective-toggle" aria-label="Babylonia 2.5D scenery" aria-pressed={perspective} onClick={()=>setPerspective(value=>!value)}>2.5D</button><button className="secondary province-view" onClick={focusProvince} aria-label="Focus province">Province</button><button className="secondary detail-toggle" aria-pressed={level === 'state'} onClick={() => setStateDetail(level === 'state' ? 'province' : 'state')}>Detail</button><button className="secondary" aria-label="Zoom out" disabled={camera.zoom <= .65} onClick={() => zoomMap(1 / 1.25)}>−</button><button className="secondary reset-view" aria-label="Dominion overview" onClick={overview}>Overview</button><button className="secondary" aria-label="Zoom in" disabled={camera.zoom >= 7} onClick={() => zoomMap(1.25)}>+</button></div>
         </div>
       </div>
       <footer className="map-attribution">Approximate campaign boundaries · <a href="https://www.naturalearthdata.com/downloads/50m-physical-vectors/" target="_blank" rel="noreferrer">Natural Earth</a></footer>

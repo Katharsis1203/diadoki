@@ -4,6 +4,7 @@ import { provinceDefinitions, settlementDefinitions, stateDefinitions } from '..
 import { terrainFeatures } from '../src/game/terrainContent.ts'
 import { rivers } from '../src/game/mapGeometry.ts'
 import { babyloniaDistrictMasks, babyloniaEasternFrontier } from '../src/game/babyloniaGeography.ts'
+import { terrainBoundaryCuts, terrainJunctions } from '../src/game/terrainBoundaries.ts'
 
 // One coastline-clipped campaign envelope. There are no legacy province shapes.
 const envelope = JSON.parse(fs.readFileSync(new URL('./campaign-outline.json', import.meta.url)))
@@ -144,6 +145,44 @@ for (const {stateId, outline} of babyloniaDistrictMasks) {
   unassignedBabylonia = clipping.difference(unassignedBabylonia, mask)
 }
 states.nippur = main(unassignedBabylonia, 'nippur')
+
+// Move shared junctions and replace each geographic cut once on BOTH sides.
+// Keep the mesh topology, memberships and campaign exterior intact. No ridge
+// icons are sampled: the authored backbone describes substantial catchments.
+const pointKey = p => round(p).join(',')
+for (const {states: ids, at} of terrainJunctions) {
+  const common = states[ids[0]].filter(p => ids.every(id => states[id].some(q => pointKey(p) === pointKey(q))))
+  if (common.length !== 1) throw new Error(`Expected one junction: ${ids.join('/')}`)
+  const oldKey = pointKey(common[0]), replacement = project(at)
+  for (const id of Object.keys(states)) states[id] = states[id].map(p => pointKey(p) === oldKey ? replacement : p)
+}
+const edgeKey = (a,b) => [pointKey(a),pointKey(b)].sort().join('/')
+const sharedRun = (ring, other) => {
+  const otherEdges = new Set(other.map((p,i) => edgeKey(p,other[(i+1)%other.length])))
+  const shared = ring.map((p,i) => otherEdges.has(edgeKey(p,ring[(i+1)%ring.length])))
+  const starts = shared.flatMap((yes,i) => yes && !shared[(i+shared.length-1)%shared.length] ? [i] : [])
+  if (starts.length !== 1) throw new Error('Geographic cut must be one connected shared boundary')
+  const start = starts[0]
+  let count = 0
+  while (shared[(start+count)%shared.length]) count++
+  return {start,count,from:ring[start],to:ring[(start+count)%ring.length]}
+}
+for (const {states:[a,b],via,feature} of terrainBoundaryCuts) {
+  const first=sharedRun(states[a],states[b]), second=sharedRun(states[b],states[a])
+  if(pointKey(first.from)!==pointKey(second.to) || pointKey(first.to)!==pointKey(second.from)) {
+    throw new Error(`${a}/${b}: shared boundary endpoints disagree`)
+  }
+  // Source cuts run north-to-south, or west-to-east for transverse margins.
+  const from=first.from,to=first.to
+  const distance=p=>Math.hypot(p[0]-from[0],p[1]-from[1])
+  const middle=via.map(project)
+  if(middle.length>1 && distance(middle[0])>distance(middle.at(-1)))middle.reverse()
+  const path=[from,...middle,to].map(round)
+  const replace=(ring,run,line)=>[...line.slice(0,-1),...Array.from({length:ring.length-run.count},(_,i)=>ring[(run.start+run.count+i)%ring.length])]
+  states[a]=replace(states[a],first,path)
+  states[b]=replace(states[b],second,[...path].reverse())
+  console.log(`Authored ${a}/${b}: ${feature}.`)
+}
 
 // Insert new junctions on both sides of every seam before sharing mesh vertices.
 const finalPoints = [...new Map(Object.values(states).flat().map(p => [round(p).join(','), round(p)])).values()]

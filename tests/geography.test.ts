@@ -7,9 +7,22 @@ import { project } from '../src/game/data.ts'
 import { diyalaTigrisBank, easternFrontierRiver, lowerEuphratesBank } from '../src/game/babyloniaGeography.ts'
 import { campaignOutline, mapVertices, provinceOutlines, stateRings } from '../src/game/stateGeometry.ts'
 import { mapBorderPaths, pointInState, territoryAt } from '../src/game/geography.ts'
+import { terrainBoundaryCuts } from '../src/game/terrainBoundaries.ts'
 
 type Point = readonly [number, number]
 const points = (id: string) => stateRings[id].map((index) => mapVertices[index])
+
+test('authored ridge, foothill and valley cuts use identical vertices on both sides',()=>{
+  for(const {states:[a,b],via,feature} of terrainBoundaryCuts)for(const at of via){
+    const p=project(at)
+    const match=(q:Point)=>Math.hypot(p[0]-q[0],p[1]-q[1])<.00001
+    assert.ok(points(a).some(match)&&points(b).some(match),`${feature}: shared geographic anchor missing`)
+  }
+  const states=createInitialState().states
+  for(const [at,id] of [[[46.55,34.45],'zagros'],[[46.85,34.60],'nisaea'],[[47.30,33.80],'cossaea'],
+    [[47.48,34.16],'nisaea'],[[48.50,32.38],'susa'],[[48.50,32.72],'cossaea']] as const)
+    assert.equal(territoryAt(project(at),states)?.state.id,id,`Wrong ridge/foothill side at ${at}`)
+})
 const cross = (a: Point, b: Point, c: Point) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 const onEdge = (p: Point, a: Point, b: Point) => Math.abs(cross(a, b, p)) < .001
   && p[0] >= Math.min(a[0], b[0]) && p[0] <= Math.max(a[0], b[0])

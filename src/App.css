@@ -20,28 +20,34 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .map-coastal-shallows { fill: none; stroke: #c4ddd4; stroke-width: 8; stroke-opacity: .52; stroke-linejoin: round; }
 .map-context, .map-physical-features, .map-terrain, .map-borders, .map-labels, .map-faction-seats, .map-settlements, .map-province-seats, .map-armies, .map-local-details { pointer-events: none; }
 .territory-state { cursor: pointer; outline: none; }
-.state-area { fill: #fff3cd; fill-opacity: .025; stroke: none; transition: fill-opacity .18s; }
-.territory-state:hover .state-area { fill-opacity: .22; }
-.territory-state.selected .state-area { fill: #fff3c8; fill-opacity: .3; }
+.state-area { fill: #fff1c4; fill-opacity: .015; stroke: none; transition: fill-opacity .18s; }
+.territory-state:hover .state-area { fill-opacity: .32; stroke: #fbebbd; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.territory-state.selected .state-area { fill: #ffe7a3; fill-opacity: .34; }
+.map-ownership { opacity: .10; mix-blend-mode: multiply; transition: opacity .35s ease; }
+.map-level-dominion .map-ownership { opacity: .30; }
+.map-level-state .map-ownership { opacity: .065; }
+.map-paper-grain { opacity: .65; }
 .territory-state:focus-visible .state-area { fill-opacity: .35; stroke: #8d6b37; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .map-borders path, .state-selection { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.dominion-border { stroke-width: 6; stroke-opacity: .8; }
+.dominion-border { stroke-width: 7; stroke-opacity: .94; }
+.map-level-dominion .dominion-border { stroke-width: 9; stroke-opacity: 1; }
+.dominion-edge { stroke-width: 1.8; stroke-opacity: .95; }
 .dominion-ink { stroke: #624d38; stroke-width: .85; stroke-opacity: .85; }
 .province-division { stroke: #856d49; stroke-width: 1.35; stroke-opacity: .68; }
 .state-division { stroke: #8e7d5b; stroke-width: .8; stroke-opacity: .62; }
 .province-highlight { fill: #fff3cc; fill-opacity: .09; }
-.selected-province-border { stroke: #79572f; stroke-width: 2.3; stroke-opacity: .9; }
-.state-selection { stroke: #76512f; stroke-width: 1.8; }
+.selected-province-border { stroke: #5b4229; stroke-width: 2.5; stroke-opacity: 1; }
+.state-selection { stroke: #4e3823; stroke-width: 2.1; stroke-dasharray: 7 2.5; }
 .faction-seal { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 .faction-seal .seal-ring { fill: #f2e3bd; fill-opacity: .92; stroke-width: .8; }
 .faction-seal .capital-outer { fill: #efddb0; stroke-width: .6; stroke-opacity: .55; }
 .faction-seal .emblem-eye, .faction-seal .emblem-boss { fill: currentColor; stroke: none; }
-.map-river { fill: none; stroke: #689ca9; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.map-river { fill: none; stroke: #3c8391; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
 .river-bank-light { fill: none; stroke: #efe7ce; stroke-width: 1.9; stroke-opacity: .45; stroke-linecap: round; }
-.river-fertility { fill: none; stroke: #97ac84; stroke-width: 13; stroke-opacity: .06; stroke-linecap: round; filter: url(#river-wash-soften); }
-.map-lake { fill: #a0c7ca; stroke: #8ba5a0; stroke-width: .6; }
+.river-fertility { fill: none; stroke: #638553; stroke-width: 13; stroke-opacity: .13; stroke-linecap: round; filter: url(#river-wash-soften); }
+.map-lake { fill: #72a99f; stroke: #538c88; stroke-width: .7; }
 .water-label { fill: #53818a; font: italic 17px Georgia, serif; letter-spacing: .1em; text-anchor: middle; }
-.map-labels text { fill: #53432e; font-family: Georgia, serif; paint-order: stroke; stroke: #efdfbc; stroke-linejoin: round; }
+.map-labels text { fill: #443521; font-family: Georgia, serif; paint-order: stroke; stroke: #eeddb9; stroke-linejoin: round; }
 .map-labels .state-label { letter-spacing: .015em; }
 .map-labels .dominion-label { font-weight: 500; font-style: italic; letter-spacing: .1em; }
 .map-labels .city-label { fill: #806c4c; font-style: italic; }
@@ -51,7 +57,7 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .map-province-seats { fill: #f1dfb8; stroke: #775b35; stroke-width: 1.1; }
 .map-scenery { pointer-events: none; }
 .map-scenery use { stroke-linejoin: round; stroke-linecap: round; }
-.scenery-shadow { fill: #725d3f; fill-opacity: .14; stroke: none; }
+.scenery-shadow { fill: #594932; fill-opacity: .21; stroke: none; }
 .perspective-toggle[aria-pressed="true"] { background: #dbc294; border-color: #967548; }
 .province-seat-center { fill: #775b35; stroke: none; }
 .map-armies path { fill: currentColor; stroke: #f6e6be; stroke-width: .9; }
