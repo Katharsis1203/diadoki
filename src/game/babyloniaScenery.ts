@@ -1,4 +1,6 @@
 import { project } from './data.ts'
+import { DEFAULT_MAP_SETTINGS } from './mapSettings.ts'
+import type { MapSettings } from './mapSettings.ts'
 import type { TerritoryState } from './data.ts'
 import { stateDefinitions } from './geographyContent.ts'
 import type { MapPoint, MapProjection } from './mapProjection.ts'
@@ -104,11 +106,12 @@ export const campaignScenery: readonly SceneryPlacement[] = [...babyloniaScenery
   }),
 ].toSorted((a,b)=>a.position[1]-b.position[1]||a.id.localeCompare(b.id))
 
-export function sceneryObjects(projection: MapProjection, zoom: number, scale: number, level: MapLevel, states?: readonly TerritoryState[]): SceneryObject[] {
+export function sceneryObjects(projection: MapProjection, zoom: number, scale: number, level: MapLevel, states?: readonly TerritoryState[],settings:MapSettings=DEFAULT_MAP_SETTINGS): SceneryObject[] {
   if (level==='dominion') return []
   const regional=Math.max(0,Math.min(1,(zoom-1.15)/.65))
   const local=level==='state'?Math.max(0,Math.min(1,(zoom-1.8)/1.0)):0
   return campaignScenery.flatMap(authored=>{
+    if(authored.asset==='settlement'?!settings.settlements:['mountain','hill'].includes(authored.asset)?!settings.mountains:!settings.vegetation)return []
     const state=authored.asset==='settlement'?states?.find(s=>s.id===authored.stateId):undefined
     const placement: SceneryPlacement=authored.asset==='settlement'&&state ?
       {...authored,...settlementAppearance(state.buildings.market,authored.isCapital)} : authored

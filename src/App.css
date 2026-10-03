@@ -15,12 +15,15 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .map-panel { background: #91bbc5; }
 .campaign-map { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; background: #91bbc5; }
 /* One continuous parchment landscape; political lines sit above the relief. */
+.map-margin { fill: #e4d2aa; }
+.map-theatre-edge { fill: none; stroke: #987d53; stroke-width: .8; vector-effect: non-scaling-stroke; }
 .map-sea { fill: url(#sea-wash); }
 .map-land { fill: url(#land-wash); stroke: #9c9876; stroke-width: .65; stroke-linejoin: round; }
 .map-coastal-shallows { fill: none; stroke: #c4ddd4; stroke-width: 8; stroke-opacity: .52; stroke-linejoin: round; }
 .map-context, .map-physical-features, .map-terrain, .map-borders, .map-labels, .map-faction-seats, .map-settlements, .map-province-seats, .map-armies, .map-local-details { pointer-events: none; }
 .territory-state { cursor: pointer; outline: none; }
 .state-area { fill: #fff1c4; fill-opacity: .015; stroke: none; transition: fill-opacity .18s; }
+.theatre-territories .state-area { fill-opacity: 0; pointer-events: all; }
 .territory-state:hover .state-area { fill-opacity: .32; stroke: #fbebbd; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
 .territory-state.selected .state-area { fill: #ffe7a3; fill-opacity: .34; }
 .map-ownership { opacity: .10; mix-blend-mode: multiply; transition: opacity .35s ease; }
@@ -29,10 +32,10 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .map-paper-grain { opacity: .65; }
 .territory-state:focus-visible .state-area { fill-opacity: .35; stroke: #8d6b37; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .map-borders path, .state-selection { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.dominion-border { stroke-width: 7; stroke-opacity: .94; }
-.map-level-dominion .dominion-border { stroke-width: 9; stroke-opacity: 1; }
-.dominion-edge { stroke-width: 1.8; stroke-opacity: .95; }
-.dominion-ink { stroke: #624d38; stroke-width: .85; stroke-opacity: .85; }
+.dominion-border { stroke-width: 4; stroke-opacity: .94; }
+.map-level-dominion .dominion-border { stroke-width: 5; stroke-opacity: 1; }
+.dominion-edge { stroke-width: 1.2; stroke-opacity: .95; }
+.dominion-ink { stroke: #624d38; stroke-width: .55; stroke-opacity: .75; }
 .province-division { stroke: #856d49; stroke-width: 1.35; stroke-opacity: .68; }
 .state-division { stroke: #8e7d5b; stroke-width: .8; stroke-opacity: .62; }
 .province-highlight { fill: #fff3cc; fill-opacity: .09; }
@@ -45,6 +48,7 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .map-river { fill: none; stroke: #3c8391; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
 .river-bank-light { fill: none; stroke: #efe7ce; stroke-width: 1.9; stroke-opacity: .45; stroke-linecap: round; }
 .river-fertility { fill: none; stroke: #638553; stroke-width: 13; stroke-opacity: .13; stroke-linecap: round; filter: url(#river-wash-soften); }
+.ground-fertility-cached .river-fertility-ground { display: none; }
 .map-lake { fill: #72a99f; stroke: #538c88; stroke-width: .7; }
 .water-label { fill: #53818a; font: italic 17px Georgia, serif; letter-spacing: .1em; text-anchor: middle; }
 .map-labels text { fill: #443521; font-family: Georgia, serif; paint-order: stroke; stroke: #eeddb9; stroke-linejoin: round; }
@@ -60,7 +64,6 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .map-scenery { pointer-events: none; }
 .map-scenery use { stroke-linejoin: round; stroke-linecap: round; }
 .scenery-shadow { fill: #594932; fill-opacity: .21; stroke: none; }
-.perspective-toggle[aria-pressed="true"] { background: #dbc294; border-color: #967548; }
 .province-seat-center { fill: #775b35; stroke: none; }
 .map-armies path { fill: currentColor; stroke: #f6e6be; stroke-width: .9; }
 .map-armies .active-army path { stroke: #6e512f; stroke-width: 1; }
@@ -156,3 +159,17 @@ label { display: block; margin: 18px 0 8px; font-size: .82rem; } select { width:
 @media (prefers-reduced-motion: reduce) {
   .terrain-wash, .terrain-detail, .terrain-tributaries, .detail-fade { transition: none; }
 }
+
+.atlas-owner { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+.atlas-owner i { width: 12px; height: 12px; border: 1px solid #695337; flex: none; }
+
+.map-settings-panel { position: fixed; z-index: 45; top: 126px; right: 24px; width: 350px; max-height: calc(100dvh - 260px); overflow-y: auto; overscroll-behavior: contain; }
+.settings-presets { display: flex; gap: 8px; margin: 15px 0; }
+.settings-presets button { padding: 7px 10px; font-size: .75rem; }
+.map-settings-panel fieldset { border: 0; border-top: 1px solid #a48b5c66; padding: 10px 0; margin: 8px 0 0; }
+.map-settings-panel legend { padding-right: 8px; font-size: .85rem; color: #695338; }
+.setting-option { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: .85rem; cursor: pointer; }
+.setting-option input { margin: 3px 0 0; accent-color: #84622f; width: 16px; height: 16px; flex: none; }
+.setting-option small { display: block; margin-top: 3px; font-size: .7rem; line-height: 1.4; }
+@media (max-width: 600px) { .map-settings-panel { left: 12px; right: 12px; width: auto; top: 116px; max-height: calc(100dvh - 280px); padding: 18px; } }
+@media (max-height: 500px) { .map-settings-panel { top: 115px; max-height: calc(100dvh - 205px); } }

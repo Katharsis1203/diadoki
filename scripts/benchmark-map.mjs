@@ -1,5 +1,7 @@
 // Informational median timings; no machine-dependent thresholds or gameplay mutations.
 import { createInitialState } from '../src/game/data.ts'
+import { politicalBorderPaths } from '../src/game/politicalGeography.ts'
+import { prepareMapScene } from '../src/game/mapScene.ts'
 import { mapBorderPaths, pointInState } from '../src/game/geography.ts'
 import { sceneryObjects } from '../src/game/babyloniaScenery.ts'
 import { focusCamera } from '../src/game/mapView.ts'
@@ -12,6 +14,9 @@ const shapes = game.states.filter(state => state.provinceId === 'babylonia').map
 const tasks = {
   reset: { count: 50, work: () => createInitialState().states.length },
   borderPaths: { count: 300, work: () => mapBorderPaths(game.states).frontiers.length },
+  theatreBorders: {count:100,work:()=>politicalBorderPaths(game.states).frontiers.length},
+  provinceScene: {count:300,work:()=>prepareMapScene(game,projection,2.5,3,'province',true,true).objects.length},
+  overviewScene: {count:300,work:()=>prepareMapScene(game,projection,.45,.5,'dominion',true,true).dominionLabels.length},
   labelContainment: {
     count: 100,
     work: () => game.states.reduce((count, state) => count + [-95,-65,-45,0,45,65,95]

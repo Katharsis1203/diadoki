@@ -3,6 +3,7 @@
 ## Implemented
 
 - Faction/Dominion → Province → State hierarchy: 10 provinces, 48 independently selectable and conquerable polygons, three factions, and 32 settlement reference points.
+- Additional first-pass geography: 57 provinces and 181 selectable draft states across the remaining Alps-to-Bengal theatre, with river/ridge-guided shared edges, proposed provincial seats, centre markers, province focus and geographic adjacency. Drafts are outside campaign ownership, orders, income and victory calculations.
 - Named content in a dedicated data file, with a single coastline-clipped campaign envelope and district generation around places and travel hubs. Shared irregular edges respond to river and mountain cues.
 - Pontus reaches the southern Black Sea coast; Assyria has five distinct northern Mesopotamian states. Both are genuine child unions with their own exterior borders.
 - Exact state coverage and province unions, shared-edge adjacency, unique child membership, and derived dominions including divided provinces.
@@ -10,7 +11,7 @@
 - Non-interactive, data-driven terrain corridors with macro/regional/local crossfades, restrained SVG relief, fertile washes, canals and tributaries; thin borders and selection remain visible over rivers.
 - Babylon's coherent urban hinterland includes Borsippa; Sippar, Nippur, Uruk and Ur remain separate. Manual interior label overrides, collision-aware names, principal-seat coins and a main-settlement ring for every province.
 - Babylonia is the first province with an authored river/canal/dryland partition: shared Tigris/Euphrates bank geometry, irregular palm/reed/dryland patches, northeastern foothills and state landscape descriptions. The eastern provincial seam follows one Tigris bank, with matching adjustments to the adjoining Susiana districts.
-- Switchable Babylonia 2.5D prototype: shared fixed ground projection, upright depth-sorted SVG cities/palms/reeds/relief, ellipse shadows and stable authored placements. Borders and readable labels sit above scenery; projection-aware camera fitting and dragging preserve interaction. The 2.5D toggle restores flat view.
+- Fixed Babylonia 2.5D prototype: shared fixed ground projection, upright depth-sorted SVG cities/palms/reeds/relief, ellipse shadows and stable authored placements. Borders and readable labels sit above scenery; projection-aware camera fitting and dragging preserve interaction. The flat-view toggle has been removed.
 - Measured performance pass: prepared geometry/adjacency, deduplicated coordinate serialization, memoized map layers and gameplay panels, stable wheel handling and cached scene preparation. The audit and remaining SVG painting costs are recorded in `PERFORMANCE.md`; `npm run benchmark:map` repeats core timings.
 - Development-based settlement appearance only in Babylonia: one primary centre per state, one distinctive Babylon capital, Sippar as a village and five homesteads/camps at the opening market levels. Capital status is separate from tier; labels sit near their centres. Editable visual thresholds adapt the current market levels; development points, separate fortification, capital support and province income remain documented future design.
 - Conditional floating state/province details, sibling/neighbor navigation, aggregated control/income, pan/zoom, keyboard and touch selection, compact HUD and dismissible log/commander layers.
@@ -22,9 +23,9 @@
 ## Limitations
 
 - District boundaries, principal seats and the roster are approximate prototype content, not a scenario validated for a fixed opening year. Physical features use modern Natural Earth geography.
-- Surrounding background land and offshore islands are context outside the campaign envelope.
+- The additional provinces are selectable map drafts outside the playable campaign; remaining unpartitioned land is physical context.
 - Terrain and waterways are authored illustration without gameplay modifiers; close labels may still be omitted where space is tight, especially on small screens.
-- Province-by-province authoring currently covers Babylonia. Other provinces retain the earlier catchments and regular corridor symbols. The new canal districts are schematic campaign geography.
+- Individually reviewed district geography currently covers Babylonia and its eastern neighbours. Additional theatre boundaries are first-pass terrain-guided catchments; historical refinement, balance and detailed settlement artwork still need authoring. The Babylon canal districts are schematic campaign geography.
 - Rivals hold position. Defeat exists but rival attacks are not implemented.
 - No saves/import, upkeep, troop replenishment, province-wide policies, loyalty systems or tactical formations.
 - Local events support development/capture hooks; full branching narrative scenes remain future work.
@@ -37,3 +38,13 @@
 3. Add troop replenishment and playtest movement and building costs across the larger map.
 4. Add versioned, validated saves.
 5. Introduce rival actions and province administration in separate milestones.
+
+## Political atlas update
+
+The 57 additional provinces have authored ownership across 31 map factions. Western spheres loosely follow autumn 312 BCE, with Cassander and Lysimachus added, regional western rulers, and nine independent eastern satraps each holding one or two provinces. Province defaults/state exceptions and colours are editable in `politicalContent.ts`. The original active campaign remains unchanged; new faction assignments are atlas content awaiting playable integration.
+
+Unified core/atlas frontier edges avoid duplicate borders at their shared seam, remain responsive to conquest, and use thinner faction strokes. Overview labels and provincial inspectors identify rulers; Ptolemy’s atlas principal seat is Alexandria. The map always uses upright 2.5D scenery.
+
+## Performance review and display controls
+
+Added 12 persistent local display switches with Full/Light presets and an SVG/cached-ground comparison. Disabled scenery and labels skip their preparation; selections, faction frontiers, simple primary centres and gameplay remain available. Cache publication is progressive, fallback is restricted to missing tile rectangles, and cache-off disposes bitmap resources. Terrain/ownership culling, prepared overview artwork, inactive-tier omission and frame-batched pan reduce unnecessary rendering work. The audit and production benchmark protocol are in PERFORMANCE.md.

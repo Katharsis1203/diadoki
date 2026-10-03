@@ -5,6 +5,8 @@ import { gameReducer } from '../src/game/engine.ts'
 import { pointInState } from '../src/game/geography.ts'
 import { mapVertices, stateRings } from '../src/game/stateGeometry.ts'
 import { mapProjection } from '../src/game/mapProjection.ts'
+import { sceneryObjects } from '../src/game/babyloniaScenery.ts'
+import { DEFAULT_MAP_SETTINGS } from '../src/game/mapSettings.ts'
 import { prepareMapScene } from '../src/game/mapScene.ts'
 
 test('prepared geometry preserves recorded point-query results at vertices, edges and interiors', () => {
@@ -64,4 +66,17 @@ test('scene preparation follows development, selection, commander and ownership 
   assert.ok(original.seats.some(seat => seat.faction.id==='antigonus'))
   assert.ok(!next.seats.some(seat => seat.faction.id==='antigonus'))
   assert.equal(JSON.stringify(game),before)
+})
+
+test('selection reuses prepared artwork while label priorities and commander details change',()=>{
+  const game=createInitialState(),projection=mapProjection(true)
+  const objects=sceneryObjects(projection,2.5,3,'province',game.states)
+  const first=prepareMapScene(game,projection,2.5,3,'province',true,true,DEFAULT_MAP_SETTINGS,objects)
+  const selected=gameReducer(game,{type:'selectState',id:'sippar'})
+  const second=prepareMapScene(selected,projection,2.5,3,'province',true,true,DEFAULT_MAP_SETTINGS,objects)
+  assert.equal(first.objects,second.objects)
+  assert.equal(second.objects,objects)
+  assert.equal(second.state?.id,'sippar')
+  assert.equal(second.labels.find(l=>l.id==='sippar')?.priority,10)
+  assert.equal(game.selectedStateId,null)
 })

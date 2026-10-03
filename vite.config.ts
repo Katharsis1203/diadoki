@@ -10,7 +10,10 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         codeSplitting: {
-          groups: [{ name: 'physical-geography', test: /\/game\/(worldMapGeometry|worldRiverCourses|riverCourses)\.ts$/ }],
+          groups: [
+            { name: 'physical-geography', test: /\/game\/(worldMapGeometry|worldRiverCourses|riverCourses)\.ts$/ },
+            { name: 'theatre-geography', test: /\/game\/theatreGeometry\.ts$/ },
+          ],
         },
       },
     },

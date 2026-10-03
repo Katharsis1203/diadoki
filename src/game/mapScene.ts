@@ -1,7 +1,11 @@
+import { DEFAULT_MAP_SETTINGS } from './mapSettings.ts'
+import type { MapSettings } from './mapSettings.ts'
 import type { GameState } from './data.ts'
+import { mapFactionById } from './politicalContent.ts'
 import { factions } from './data.ts'
 import { dominionLabel, leader, selectedProvince, selectedState } from './engine.ts'
 import { pointInState } from './geography.ts'
+import type { SceneryObject } from './babyloniaScenery.ts'
 import { sceneryObjects } from './babyloniaScenery.ts'
 import type { MapProjection } from './mapProjection.ts'
 import type { MapLabel, MapLevel } from './mapView.ts'
@@ -9,28 +13,30 @@ import type { MapLabel, MapLevel } from './mapView.ts'
 // Camera-independent scene preparation: pan only changes visibility. Keep the
 // candidates, ground anchors and collision obstacles stable between pans.
 type SceneState = Pick<GameState, 'states' | 'provinces' | 'settlements' | 'commanders' | 'selectedStateId' | 'selectedCommanderId'>
-export function prepareMapScene(game: SceneState, projection: MapProjection, zoom: number, scale: number, level: MapLevel, perspective: boolean) {
-  const objects = perspective ? sceneryObjects(projection,zoom,scale,level,game.states) : []
-  const centres = new Map(objects.flatMap(o=>o.placement.asset==='settlement'?[[o.placement.stateId,{object:o,name:o.placement.name,isCapital:o.placement.isCapital}] as const]:[]))
-  const illustratedSeats = new Set(objects.filter(o=>o.placement.asset==='settlement').map(o=>o.placement.settlementId))
+export function prepareMapScene(game: SceneState, projection: MapProjection, zoom: number, scale: number, level: MapLevel, perspective: boolean, politicalAtlas = false,settings:MapSettings=DEFAULT_MAP_SETTINGS,preparedObjects?:SceneryObject[]) {
+  const objects = preparedObjects ?? (perspective ? sceneryObjects(projection,zoom,scale,level,game.states,settings) : [])
+  const simpleCentres=!settings.settlements?sceneryObjects(projection,zoom,scale,level,game.states,{...settings,settlements:true,mountains:false,vegetation:false}).map(o=>({...o,size:0,box:{left:o.x-3/scale,right:o.x+3/scale,top:o.y-3/scale,bottom:o.y+3/scale}})):[]
+  const centreObjects=[...objects.filter(o=>o.placement.asset==='settlement'),...simpleCentres]
+  const centres = new Map(centreObjects.flatMap(o=>o.placement.asset==='settlement'?[[o.placement.stateId,{object:o,name:o.placement.name,isCapital:o.placement.isCapital}] as const]:[]))
+  const illustratedSeats = new Set(centreObjects.filter(o=>o.placement.asset==='settlement').map(o=>o.placement.settlementId))
   const markerAt = (x:number,y:number,id:string) => {
     const point=projection.point([x,y])
     return [point[0],point[1]+(illustratedSeats.has(id)?10/scale:0)]
   }
   const state = selectedState(game), province = selectedProvince(game), commander = leader(game)
   const seats = factions.flatMap((f) => {
-    const settlement = game.settlements.find((p) => p.id === f.seatSettlementId)
+    const settlement = game.settlements.find((p) => politicalAtlas ? p.stateId === mapFactionById.get(f.id)?.seatStateId : p.id === f.seatSettlementId)
     return settlement && game.states.find((s) => s.id === settlement.stateId)?.owner === f.id ? [{faction:f,settlement}] : []
   })
   const seatIds = new Set(seats.map(p=>p.settlement.id))
   const provinceSeats = game.provinces.map(p=>({province:p,settlement:game.settlements.find(s=>s.id===p.mainSettlementId)!}))
   const provinceSeatIds = new Set(provinceSeats.map(p=>p.settlement.id))
-  const dominionLabels: MapLabel[] = factions.flatMap((f) => {
+  const dominionLabels: MapLabel[] = settings.labels&&level==='dominion'?factions.flatMap((f) => {
     const anchor = dominionLabel(game, f.id)
     const [x,y]=projection.point(anchor?[anchor.labelX,anchor.labelY]:[0,0])
     return anchor ? [{ id: f.id, text: f.name, x, y:y+65/scale, alternatives:[95,40,125].map(dy=>({x,y:y+dy/scale})), size: 22, priority: 1, kind: 'dominion' as const }] : []
-  })
-  const labels:MapLabel[] = [...game.states.map((p) => {
+  }):[]
+  const labels:MapLabel[] = settings.labels&&level!=='dominion'?[...game.states.map((p) => {
     const seat=provinceSeats.find(s=>s.settlement.stateId===p.id)
     const centre=centres.get(p.id)
     if(centre){
@@ -52,8 +58,8 @@ export function prepareMapScene(game: SceneState, projection: MapProjection, zoo
   }), ...game.settlements.filter(p=>level==='state'||provinceSeatIds.has(p.id)||p.stateId===state?.id).filter(p=>game.states.find(s=>s.id===p.stateId)?.name!==p.name).map((p) => {
     const [x,y]=projection.point([p.x,p.y])
     return {id:p.id,text:p.name,x,y:y+13/scale,size:11,priority:provinceSeatIds.has(p.id)?9:p.stateId===state?.id?5:1,kind:'city' as const}
-  })]
-  seats.forEach(({settlement:p})=>{
+  })]:[]
+  if(settings.labels&&level==='dominion')seats.forEach(({settlement:p})=>{
     const [x,y]=projection.point([p.x,p.y])
     dominionLabels.push({id:p.id,text:p.name,x,y:y+30/scale,size:12,priority:5,kind:'city'})
   })
@@ -62,13 +68,13 @@ export function prepareMapScene(game: SceneState, projection: MapProjection, zoo
     const radius=(seatIds.has(p.id)?13:6)/scale
     return {left:x-radius,right:x+radius,top:y-radius,bottom:y+radius}
   })
-  const cityObstacles=objects.filter(o=>o.placement.asset==='settlement').map(o=>o.box)
+  const cityObstacles=centreObjects.map(o=>o.box)
   const ridgeObstacles=objects.filter(o=>o.placement.asset==='mountain'&&o.placement.rangeId).map(o=>o.box)
   const [localX,localY]=projection.point(state?[state.labelX,state.labelY]:[0,0])
-  const localDetails: MapLabel[] = level === 'state' && state ? [{
+  const localDetails: MapLabel[] = settings.labels && level === 'state' && state ? [{
     id: `${state.id}-details`, text: `${state.garrison} garrison\n${state.buildings.market} market${state.buildings.fort > 0 ? ` · ${state.buildings.fort} fort` : ''}`,
     x: localX, y: localY + 40 / scale, size: 10, priority: 0, kind: 'local',
     alternatives: [55, 70, -35, -50].map(dy => ({ x: localX, y: localY + dy / scale })).filter(at => pointInState(projection.inverse([at.x, at.y]), state.id)),
   }] : []
-  return { objects, illustratedSeats, state, province, commander, seats, seatIds, provinceSeats, provinceSeatIds, markerAt, labels, localDetails, dominionLabels, obstacles, cityObstacles, ridgeObstacles }
+  return { objects, simpleCentres, illustratedSeats, state, province, commander, seats, seatIds, provinceSeats, provinceSeatIds, markerAt, labels, localDetails, dominionLabels, obstacles, cityObstacles, ridgeObstacles }
 }

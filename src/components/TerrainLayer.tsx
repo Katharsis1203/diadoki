@@ -1,9 +1,12 @@
 import { memo } from 'react'
+import { terrainGroundBrushes, terrainWashColors as colors } from '../game/groundBrushes'
 import { project } from '../game/data'
 import { routeFeatures, terrainFeatures } from '../game/terrainContent'
 import type { TerrainDetail, TerrainFeature } from '../game/terrainContent'
 import { terrainWeights } from '../game/mapView'
 import type { MapLevel } from '../game/mapView'
+import { boundsIntersect, pointBounds } from '../game/mapViewport'
+import type { LabelBox } from '../game/mapView'
 import { pointInState } from '../game/geography'
 import { provinceOutlines, stateLabels } from '../game/stateGeometry'
 import { settlementDefinitions } from '../game/geographyContent'
@@ -19,35 +22,6 @@ function softPath(points: readonly Point[]) {
   }
   return `${path}L${points.at(-1)!.join(',')}`
 }
-const colors = { mountain:'#786956',hill:'#998258',desert:'#b98a41',steppe:'#92945c',forest:'#557443',palm:'#657e44',marsh:'#588e7d',fertile:'#5e8451',coastal:'#7d9656' }
-
-// Overlapping transparent brush marks feather to zero instead of outlining a
-// constant-width tube. Taper and lateral variation follow each authored region.
-function corridorWash(feature: TerrainFeature) {
-  const points = feature.points.map(project)
-  const lengths = points.slice(1).map((p, i) => Math.hypot(p[0] - points[i][0], p[1] - points[i][1]))
-  const total = lengths.reduce((sum, length) => sum + length, 0)
-  const step = feature.width * .45, phase = points[0][0] * .13 + points[0][1] * .07
-  const marks: { x: number; y: number; rx: number; ry: number; rotation: number }[] = []
-  let walked = 0, next = 0
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1], b = points[i], length = lengths[i - 1]
-    if (!length) continue
-    const dx = (b[0] - a[0]) / length, dy = (b[1] - a[1]) / length
-    while (next <= walked + length) {
-      const t = (next - walked) / length, progress = next / total
-      const taper = .38 + .62 * Math.sin(Math.PI * progress) ** .45
-      const width = feature.width * taper * (1 + .15 * Math.sin(progress * 13 + phase))
-      const drift = Math.sin(progress * 17 + phase) * feature.width * .09
-      marks.push({ x: a[0] + t * (b[0] - a[0]) - dy * drift, y: a[1] + t * (b[1] - a[1]) + dx * drift,
-        rx: width * .8, ry: width * .6, rotation: Math.atan2(dy, dx) * 180 / Math.PI })
-      next += step
-    }
-    walked += length
-  }
-  return marks
-}
-
 // Sample connected corridors at fixed map distances, once when the module loads.
 // Local clusters add finer symbols in the same region instead of enlarging them.
 function corridorSymbols(feature: TerrainFeature) {
@@ -79,13 +53,10 @@ function corridorSymbols(feature: TerrainFeature) {
   }
   return out
 }
-const illustrated = terrainFeatures.map(feature=>({feature,symbols:corridorSymbols(feature)}))
+const illustrated = terrainFeatures.map(feature=>{const symbols=corridorSymbols(feature);return {feature,symbols,bounds:pointBounds(symbols.map(p=>[p.x,p.y]))}})
 // Washes are shared across detail levels so crossfades never stack their colour.
-const washes = terrainFeatures.filter(feature => feature.detail === 'regional'&&!['mountain','hill'].includes(feature.type)).map(feature => ({
-  feature,
-  artwork: corridorWash(feature).map((p, i) => <ellipse key={i} cx={p.x} cy={p.y} rx={p.rx} ry={p.ry} transform={`rotate(${p.rotation} ${p.x} ${p.y})`} fill={`url(#terrain-wash-${feature.type})`}/>),
-}))
-const routes = routeFeatures.filter(feature=>feature.type==='river').map(feature=>({feature,path:feature.provinceId ? `M${feature.points.map(project).map(p=>p.join(',')).join('L')}` : softPath(feature.points.map(project))}))
+const washes=terrainGroundBrushes.map(({feature,marks,bounds})=>({feature,bounds,artwork:marks.map((p,i)=><ellipse key={i} cx={p.x} cy={p.y} rx={p.rx} ry={p.ry} transform={`rotate(${p.rotation} ${p.x} ${p.y})`} fill={`url(#terrain-wash-${feature.type})`}/>)}))
+const routes = routeFeatures.filter(feature=>feature.type==='river').map(feature=>({feature,bounds:pointBounds(feature.points.map(project)),path:feature.provinceId ? `M${feature.points.map(project).map(p=>p.join(',')).join('L')}` : softPath(feature.points.map(project))}))
 
 export function TerrainSymbols() {
   return <>
@@ -122,20 +93,20 @@ export function TerrainSymbols() {
   </>
 }
 
-export const TerrainLayer = memo(function TerrainLayer({zoom,scale,override,sceneryPrototype=false}:{zoom:number;scale:number;override?:MapLevel;sceneryPrototype?:boolean}) {
+export const TerrainLayer = memo(function TerrainLayer({zoom,scale,override,sceneryPrototype=false,cachedGround=false,view,groundOnly=false,shading=true,vegetation=true,detailEnabled=true,waterways=true}:{zoom:number;scale:number;override?:MapLevel;sceneryPrototype?:boolean;cachedGround?:boolean;view:LabelBox;groundOnly?:boolean;shading?:boolean;vegetation?:boolean;detailEnabled?:boolean;waterways?:boolean}) {
   const weights=terrainWeights(zoom,override)
   const washStrength = weights.macro * .9 + weights.regional + weights.local * (7 / 6)
   return <g className="map-terrain" aria-hidden="true" pointerEvents="none" clipPath="url(#physical-land)">
-    <g className="terrain-washes">{washes.map(({feature: f, artwork}) => <g key={f.id} className={`terrain-wash terrain-${f.type}`} opacity={f.opacity * washStrength} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}>
+    <g className="terrain-washes">{!cachedGround&&shading&&washes.filter(w=>boundsIntersect(w.bounds,view)).map(({feature: f, artwork}) => <g key={f.id} className={`terrain-wash terrain-${f.type}`} opacity={f.opacity * washStrength} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}>
       {artwork}
     </g>)}</g>
-    {(['macro','regional','local'] as TerrainDetail[]).map(detail=><g key={detail} className={`terrain-detail terrain-${detail}`} data-terrain-detail={detail} style={{opacity:weights[detail]}}>
-      {illustrated.filter(({feature})=>feature.detail===detail&&(!sceneryPrototype||!['mountain','hill'].includes(feature.type))).map(({feature:f,symbols})=><g key={f.id} className={`terrain-region terrain-${f.type}`} data-terrain={f.id} data-state={f.stateId} opacity={f.opacity}
+    {!groundOnly&&(['macro','regional','local'] as TerrainDetail[]).map(detail=><g key={detail} className={`terrain-detail terrain-${detail}`} data-terrain-detail={detail} style={{opacity:weights[detail]}}>
+      {illustrated.filter(({feature,bounds})=>weights[detail]>0&&detailEnabled&&boundsIntersect({left:bounds.left-40,right:bounds.right+40,top:bounds.top-40,bottom:bounds.bottom+40},view)&&(!['forest','palm','marsh'].includes(feature.type)||vegetation)&&feature.detail===detail&&(!sceneryPrototype||!['mountain','hill'].includes(feature.type))).map(({feature:f,symbols})=><g key={f.id} className={`terrain-region terrain-${f.type}`} data-terrain={f.id} data-state={f.stateId} opacity={f.opacity}
         mask={f.provinceId?undefined:'url(#outside-babylonia-relief)'} clipPath={f.stateId?`url(#state-clip-${f.stateId})`:undefined}>
-        {symbols.filter(p=>!sceneryPrototype||!inSceneryZone([p.x,p.y])).map((p,i)=>{const size=Math.min(p.size,(detail==='local'?12:15)/scale);return <use key={i} href={`#terrain-${f.type}`} transform={`translate(${p.x} ${p.y}) rotate(${p.rotation})`} x={-size} y={-size*1.2} width={size*2} height={size*2}/>})}
+        {symbols.filter(p=>p.x>=view.left-20/scale&&p.x<=view.right+20/scale&&p.y>=view.top-20/scale&&p.y<=view.bottom+20/scale&&(!sceneryPrototype||!inSceneryZone([p.x,p.y]))).map((p,i)=>{const size=Math.min(p.size,(detail==='local'?12:15)/scale);return <use key={i} href={`#terrain-${f.type}`} transform={`translate(${p.x} ${p.y}) rotate(${p.rotation})`} x={-size} y={-size*1.2} width={size*2} height={size*2}/>})}
       </g>)}
     </g>)}
-    <g className="terrain-canals detail-fade" style={{opacity:weights.regional+weights.local}} clipPath="url(#babylonia-relief)">{routes.filter(({feature})=>feature.provinceId==='babylonia'&&feature.detail==='regional'&&feature.type==='river').map(({feature:f,path})=><path key={f.id} d={path} className="map-river map-canal" style={{strokeWidth:f.width}} opacity={f.opacity}><title>{f.name}</title></path>)}</g>
-    <g className="terrain-tributaries" style={{opacity:weights.local}}>{routes.filter(({feature})=>feature.type==='river'&&(!feature.provinceId||feature.detail==='local')).map(({feature:f,path})=><path key={f.id} d={path} className="map-river tributary" strokeWidth={f.width} style={f.provinceId?{strokeWidth:f.width}:undefined} opacity={f.opacity} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}/>)}</g>
+    {!groundOnly&&waterways&&<g className="terrain-canals detail-fade" style={{opacity:weights.regional+weights.local}} clipPath="url(#babylonia-relief)">{routes.filter(({feature,bounds})=>boundsIntersect(bounds,view)&&feature.provinceId==='babylonia'&&feature.detail==='regional'&&feature.type==='river').map(({feature:f,path})=><path key={f.id} d={path} className="map-river map-canal" style={{strokeWidth:f.width}} opacity={f.opacity}><title>{f.name}</title></path>)}</g>}
+    {!groundOnly&&waterways&&<g className="terrain-tributaries" style={{opacity:weights.local}}>{routes.filter(({feature,bounds})=>weights.local>0&&boundsIntersect(bounds,view)&&feature.type==='river'&&(!feature.provinceId||feature.detail==='local')).map(({feature:f,path})=><path key={f.id} d={path} className="map-river tributary" strokeWidth={f.width} style={f.provinceId?{strokeWidth:f.width}:undefined} opacity={f.opacity} clipPath={f.provinceId?'url(#babylonia-relief)':undefined}/>)}</g>}
   </g>
 })

@@ -1,3 +1,4 @@
+import { MAP_EXTENT } from './mapExtent.ts'
 import { project } from './data.ts'
 import type { LonLat } from './geographyContent.ts'
 import type { RidgeSection } from './terrainBackbone.ts'
@@ -11,6 +12,13 @@ export const worldBounds = {
   right:project([WORLD_EXTENT.east,WORLD_EXTENT.north])[0],
   top:project([WORLD_EXTENT.west,WORLD_EXTENT.north])[1],
   bottom:project([WORLD_EXTENT.west,WORLD_EXTENT.south])[1],
+}
+// Background, cached tiles and camera bounds share this padded theatre crop.
+export const mapBounds = {
+  left:project([MAP_EXTENT.west,MAP_EXTENT.north])[0],
+  right:project([MAP_EXTENT.east,MAP_EXTENT.north])[0],
+  top:project([MAP_EXTENT.west,MAP_EXTENT.north])[1],
+  bottom:project([MAP_EXTENT.west,MAP_EXTENT.south])[1],
 }
 export const worldRegions:readonly {id:string;name:string;at:LonLat;bounds:readonly [number,number,number,number]}[] = [
   {id:'italy',name:'Italy',at:[12.8,41.5],bounds:[7,36,18.5,47]},

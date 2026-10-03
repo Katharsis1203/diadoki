@@ -8,10 +8,12 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:world-terrain": "node scripts/import-world-geography.mjs",
+    "generate:world-terrain": "node --experimental-strip-types scripts/import-world-geography.mjs",
     "generate:map": "node --experimental-strip-types scripts/generate-map.mjs",
+    "generate:theatre": "node --experimental-strip-types scripts/generate-theatre.mjs",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "benchmark:map": "node --experimental-strip-types scripts/benchmark-map.mjs"
+    "benchmark:map": "node --experimental-strip-types scripts/benchmark-map.mjs",
+    "benchmark:browser": "node scripts/benchmark-browser.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

@@ -1,19 +1,10 @@
 import { memo } from 'react'
+import { earthPatches, surfaceColors } from '../game/groundSurface'
 import { project } from '../game/data'
 import type { MapLevel } from '../game/mapView'
 
 // Broad, fixed earth patches are intentionally unequal and not tiled. The
 // same map-space anchors serve the surface and the upright ridge silhouettes.
-const earthPatches = [
-  {at:[43.9,32.4],rx:35,ry:42,color:'dry',angle:-18},
-  {at:[44.2,31.2],rx:26,ry:35,color:'dry',angle:15},
-  {at:[45.5,33.0],rx:26,ry:24,color:'soil',angle:-25},
-  {at:[45.0,32.0],rx:24,ry:16,color:'fertile',angle:25},
-  {at:[46.4,31.3],rx:27,ry:18,color:'marsh',angle:24},
-  {at:[46.9,30.7],rx:30,ry:17,color:'marsh',angle:-12},
-  {at:[48.0,32.8],rx:32,ry:20,color:'rock',angle:30},
-  {at:[48.8,32.0],rx:26,ry:34,color:'soil',angle:30},
-] as const
 const fields = [
   {id:'sippar-fields',state:'sippar',at:[44.06,33.21],angle:20},
   {id:'babylon-fields-west',state:'babylon',at:[44.20,32.60],angle:-12},
@@ -24,20 +15,20 @@ const fields = [
 const soilMarks = [[43.93,31.65,15],[44.30,30.83,-8],[44.43,30.55,22],[45.87,33.30,30],[47.10,32.76,-10]] as const
 
 export function SurfaceSymbols() {
-  return <>{Object.entries({dry:'#b17f38',soil:'#ad8654',fertile:'#608550',marsh:'#568e7c',rock:'#786b57'}).map(([id,color])=>
+  return <>{Object.entries(surfaceColors).map(([id,color])=>
     <radialGradient key={id} id={`surface-${id}`}>
       <stop stopColor={color} stopOpacity=".22"/><stop offset=".4" stopColor={color} stopOpacity=".12"/>
       <stop offset=".75" stopColor={color} stopOpacity=".035"/><stop offset="1" stopColor={color} stopOpacity="0"/>
     </radialGradient>)}</>
 }
 
-export const BabyloniaSurface = memo(function BabyloniaSurface({level}:{level:MapLevel}) {
+export const BabyloniaSurface = memo(function BabyloniaSurface({level,cachedGround=false,groundOnly=false,shading=true,detailEnabled=true}:{level:MapLevel;cachedGround?:boolean;groundOnly?:boolean;shading?:boolean;detailEnabled?:boolean}) {
   return <g className="babylonia-surface" pointerEvents="none" aria-hidden="true" clipPath="url(#physical-land)">
-    {earthPatches.map(({at,rx,ry,color,angle},i)=>{
+    {!cachedGround&&shading&&earthPatches.map(({at,rx,ry,color,angle},i)=>{
       const [x,y]=project(at)
       return <ellipse key={i} cx={x} cy={y} rx={rx} ry={ry} transform={`rotate(${angle} ${x} ${y})`} fill={`url(#surface-${color})`}/>
     })}
-    <g className="cultivated-patches" opacity={level==='dominion'?0:level==='state'?.75:.58}>
+    {!groundOnly&&detailEnabled&&level!=='dominion'&&<g className="cultivated-patches" opacity={level==='state'?.75:.58}>
       {fields.map(({id,state,at,angle})=>{
         const [x,y]=project(at)
         return <g key={id} data-field={id} clipPath={`url(#state-clip-${state})`}>
@@ -51,6 +42,6 @@ export const BabyloniaSurface = memo(function BabyloniaSurface({level}:{level:Ma
         const [x,y]=project([lon,lat])
         return <path key={i} d="M-6 0q3 -2 7 -1m-4 3q3 -1 5 -.6M2 -3l1.2 -.3" transform={`translate(${x} ${y}) rotate(${angle})`} stroke="#9c7941" strokeOpacity=".35" strokeWidth=".35" fill="none"/>
       })}
-    </g>
+    </g>}
   </g>
 })

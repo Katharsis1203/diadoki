@@ -11,6 +11,7 @@ const districts = Object.fromEntries(Object.entries(stateRings).map(([id, ring])
     top: Math.min(...points.map(point => point[1])), bottom: Math.max(...points.map(point => point[1])),
   }]
 }))
+export const stateBounds = (id:string) => districts[id]
 export const stateShape = (id: string) => districts[id].shape
 
 const sharedEdges = new Map<string, { segment: string; states: string[] }>()
