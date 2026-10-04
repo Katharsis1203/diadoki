@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import type { GameState } from '../game/data'
 import { factions, project } from '../game/data'
@@ -14,6 +14,8 @@ import { mapBounds } from '../game/worldTerrain'
 import { physicalGround } from '../game/physicalLand'
 import type { MapSettings } from '../game/mapSettings'
 import { GroundFallback } from './GroundFallback'
+import { PreparedGroundMap } from './PreparedGroundMap'
+import { usePreparedGround } from './usePreparedGround'
 import { CachedGround } from './CachedGround'
 import { useCachedGround } from './useCachedGround'
 import { boxesOverlap, labelLines, MAP_HEIGHT, MAP_WIDTH, visibleLabels } from '../game/mapView'
@@ -23,6 +25,7 @@ import { sceneryObjects } from '../game/babyloniaScenery'
 import { prepareMapScene } from '../game/mapScene'
 import { boundsIntersect, mapViewport } from '../game/mapViewport'
 import type { Camera, MapLevel } from '../game/mapView'
+import { PAN_OVERSCAN, panSceneCamera, panTranslation } from '../game/mapPan'
 import { TerrainLayer } from './TerrainLayer'
 import { BabyloniaScenery } from './BabyloniaScenery'
 import { BabyloniaSurface } from './BabyloniaSurface'
@@ -33,6 +36,7 @@ type Props = {
   game: GameState
   settings:MapSettings
   camera: Camera
+  panning:boolean
   level: MapLevel
   terrainLevel?: MapLevel
   onSelect: (id: string) => void
@@ -48,11 +52,45 @@ type Props = {
 
 const WHEEL_ZOOM_SENSITIVITY = .0015
 
-export function CampaignMap({ game, camera, settings, level, terrainLevel, onSelect, selectedDraftId, onSelectDraft, onBackground, onZoom, onPointerDown, onPointerMove, onPointerUp, suppressClick }: Props) {
+export function CampaignMap(props:Props){
+  const viewport=useRef<HTMLDivElement>(null)
+  const [size,setSize]=useState(()=>({width:window.innerWidth,height:window.innerHeight}))
+  useEffect(()=>{
+    const observer=new ResizeObserver(([entry])=>setSize({width:entry.contentRect.width,height:entry.contentRect.height}))
+    if(viewport.current)observer.observe(viewport.current)
+    return ()=>observer.disconnect()
+  },[])
+  const scale=Math.min(size.width/MAP_WIDTH,size.height/MAP_HEIGHT)*props.camera.zoom
+  const overscan=props.panning?Math.min(PAN_OVERSCAN,Math.floor(Math.min(size.width,size.height)/4)):0
+  const [retained,setRetained]=useState(props.camera)
+  const camera=panSceneCamera(retained,props.camera,props.panning,scale,overscan)
+  if(camera!==retained)setRetained(camera)
+  const shift=panTranslation(camera,props.camera,scale)
+  const renderSize=useMemo(()=>({width:size.width+2*overscan,height:size.height+2*overscan}),[size.width,size.height,overscan])
+  // Event delegates stay stable while App receives the current camera. This
+  // lets the large scene skip reconciliation on translation-only frames.
+  const latest=useRef(props)
+  useLayoutEffect(()=>{latest.current=props})
+  const handlers=useMemo(()=>({
+    onZoom:(...args:Parameters<Props['onZoom']>)=>latest.current.onZoom(...args),
+    onPointerDown:(event:PointerEvent<SVGSVGElement>)=>latest.current.onPointerDown(event),
+    onPointerMove:(event:PointerEvent<SVGSVGElement>)=>latest.current.onPointerMove(event),
+    onPointerUp:()=>latest.current.onPointerUp(),
+  }),[])
+  return <div className="map-viewport" ref={viewport}>
+    <div className="map-pan-layer" data-panning={props.panning} style={{transform:props.panning?`translate3d(${shift.x}px,${shift.y}px,0)`:'none'}}>
+      <CampaignMapScene game={props.game} camera={camera} settings={props.settings} level={props.level} terrainLevel={props.terrainLevel}
+        onSelect={props.onSelect} selectedDraftId={props.selectedDraftId} onSelectDraft={props.onSelectDraft} onBackground={props.onBackground}
+        suppressClick={props.suppressClick} {...handlers} size={renderSize} scale={scale} overscan={overscan}/>
+    </div>
+  </div>
+}
+
+type SceneProps=Omit<Props,'panning'>&{size:{width:number;height:number};scale:number;overscan:number}
+const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, level, terrainLevel, onSelect, selectedDraftId, onSelectDraft, onBackground, onZoom, onPointerDown, onPointerMove, onPointerUp, suppressClick, size, scale, overscan }: SceneProps) {
   const perspective = true
   const {x:centreX,y:centreY,zoom}=camera
   const svg = useRef<SVGSVGElement>(null)
-  const [size, setSize] = useState({ width: 1440, height: 900 })
   const wheelZoom = useEffectEvent((event: WheelEvent) => {
     const map = svg.current
     if (!map || event.deltaY === 0) return
@@ -61,15 +99,10 @@ export function CampaignMap({ game, camera, settings, level, terrainLevel, onSel
     event.preventDefault()
     const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse())
     const anchor = mapProjection(perspective).inverse([point.x, point.y])
-    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? map.clientHeight : 1
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? map.clientHeight-2*overscan : 1
     const delta = Math.max(-200, Math.min(200, event.deltaY * unit))
     onZoom(Math.exp(-delta * WHEEL_ZOOM_SENSITIVITY), anchor)
   })
-  useEffect(() => {
-    const observer = new ResizeObserver(([entry]) => setSize({ width: entry.contentRect.width, height: entry.contentRect.height }))
-    if (svg.current) observer.observe(svg.current)
-    return () => observer.disconnect()
-  }, [])
   useEffect(() => {
     const map = svg.current
     if (!map) return
@@ -78,7 +111,6 @@ export function CampaignMap({ game, camera, settings, level, terrainLevel, onSel
     map.addEventListener('wheel', wheel, { passive: false })
     return () => map.removeEventListener('wheel', wheel)
   }, [])
-  const scale = Math.min(size.width / MAP_WIDTH, size.height / MAP_HEIGHT) * zoom
   const projection = mapProjection(perspective)
   const theatreEnabled = new URLSearchParams(window.location.search).get('provinces')!=='core'
   const view=mapViewport({x:centreX,y:centreY,zoom},projection,scale,size)
@@ -90,7 +122,9 @@ export function CampaignMap({ game, camera, settings, level, terrainLevel, onSel
   const [cropX,cropY]=projection.point([mapBounds.left,mapBounds.top]),[cropRight,cropBottom]=projection.point([mapBounds.right,mapBounds.bottom])
   const cropWidth=cropRight-cropX,cropHeight=cropBottom-cropY
   const [cameraX,cameraY] = projection.point([centreX,centreY])
-  const ground=useCachedGround(view,scale,level,settings.cachedGround&&new URLSearchParams(window.location.search).get('ground')!=='vector',settings.groundShading)
+  const preparedShading=settings.groundShading&&settings.cachedGround&&settings.preparedShading&&new URLSearchParams(window.location.search).get('shading')!=='live'&&new URLSearchParams(window.location.search).get('ground')!=='vector'
+  const prepared=usePreparedGround(view,scale,level,preparedShading)
+  const ground=useCachedGround(view,scale,level,settings.cachedGround&&!preparedShading&&new URLSearchParams(window.location.search).get('ground')!=='vector',settings.groundShading)
   const { states, provinces, settlements, commanders, selectedStateId, selectedCommanderId } = game
   const preparedScenery=useMemo(()=>sceneryObjects(mapProjection(true),zoom,scale,level,states,settings),[states,zoom,scale,level,settings])
   const scene = useMemo(() => prepareMapScene({states,provinces,settlements,commanders,selectedStateId,selectedCommanderId}, mapProjection(perspective), zoom, scale, level, perspective, theatreEnabled, settings, preparedScenery),
@@ -133,8 +167,9 @@ export function CampaignMap({ game, camera, settings, level, terrainLevel, onSel
     // Labels have their own ink halo above relief. Keep ridges connected rather
     // than removing a whole peak for every district caption.
     !(o.placement.rangeId?fixedSceneryObstacles:decorativeObstacles).some(box=>boxesOverlap(o.box,box))))
-  return <svg ref={svg} className={`campaign-map map-level-${level}`} data-ground-renderer={ground.ready?'cached':ground.available.length?'partial-cache':ground.geometry?'vector-fallback':'vector'} data-level={level} data-perspective={perspective?'2.5d':'flat'} data-zoom={zoom.toFixed(3)}
-    viewBox={`${cameraX - MAP_WIDTH / (2 * zoom)} ${cameraY - MAP_HEIGHT / (2 * zoom)} ${MAP_WIDTH / zoom} ${MAP_HEIGHT / zoom}`}
+  return <svg ref={svg} className={`campaign-map map-level-${level}`} data-ground-renderer={preparedShading?'prepared':ground.ready?'cached':ground.available.length?'partial-cache':ground.geometry?'vector-fallback':'vector'} data-level={level} data-perspective={perspective?'2.5d':'flat'} data-zoom={zoom.toFixed(3)}
+    style={{width:size.width,height:size.height,left:-overscan,top:-overscan}}
+    viewBox={`${cameraX - size.width/(2*scale)} ${cameraY - size.height/(2*scale)} ${size.width/scale} ${size.height/scale}`}
     role="group" aria-label="Faction dominions contain provinces, composed of selectable states. Select a state for details. Drag to pan; use the mouse wheel to zoom; focus a province to issue orders."
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onLostPointerCapture={onPointerUp}
     onClick={() => { if (!suppressClick.current) onBackground() }}>
@@ -144,7 +179,7 @@ export function CampaignMap({ game, camera, settings, level, terrainLevel, onSel
       <pattern id="margin-grain" width="256" height="256" patternUnits="userSpaceOnUse" patternTransform={`scale(${1/scale})`}>
         <image href={`${import.meta.env.BASE_URL}textures/parchment-grain.png`} width="256" height="256"/>
       </pattern>
-      <clipPath id="physical-land"><path d={ground.geometry?.landPath??physicalGround.landPath} clipRule="evenodd"/></clipPath>
+      <clipPath id="physical-land"><path d={prepared.geometry?.landPath??ground.geometry?.landPath??physicalGround.landPath} clipRule="evenodd"/></clipPath>
       <pattern id="land-grain" width="256" height="256" patternUnits="userSpaceOnUse" patternTransform={`scale(${1/scale} ${1/(scale*projection.yScale)})`}>
         <image href={`${import.meta.env.BASE_URL}textures/parchment-grain.png`} width="256" height="256"/>
       </pattern>
@@ -156,16 +191,16 @@ export function CampaignMap({ game, camera, settings, level, terrainLevel, onSel
     <rect x={cropX} y={cropY} width={cropWidth} height={cropHeight} className="map-sea" />
     <rect x={cropX} y={cropY} width={cropWidth} height={cropHeight} fill="url(#sea-engraving)" />
     <g className="map-ground" transform={projection.groundTransform}>
-    {ground.geometry?<><GroundFallback ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level} shading={settings.groundShading}/>
+    {prepared.geometry?<PreparedGroundMap prepared={prepared} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level}/>:ground.geometry?<><GroundFallback ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level} shading={settings.groundShading}/>
       <CachedGround ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size}/></>:<ContextLand/>}
     {theatreEnabled&&<TheatreTerritories view={view} selectedId={selectedDraftId} battle={!!game.battle} onSelect={onSelectDraft} suppressClick={suppressClick}/>}
     <StateTerritories states={game.states} provinces={game.provinces} selectedId={state?.id} battle={!!game.battle} onSelect={onSelect} suppressClick={suppressClick}/>
-    <TerrainLayer view={view} shading={settings.groundShading} detailEnabled={settings.groundDetail} vegetation={settings.vegetation} waterways={settings.waterways} zoom={zoom} scale={scale} override={terrainLevel} sceneryPrototype={perspective} cachedGround={!!ground.geometry}/>
-    {!ground.geometry&&settings.groundShading&&<CoreTerrainGround view={view}/>}
-    <BabyloniaSurface shading={settings.groundShading} detailEnabled={settings.groundDetail} level={level} cachedGround={!!ground.geometry}/>
+    <TerrainLayer view={view} shading={settings.groundShading} detailEnabled={settings.groundDetail} vegetation={settings.vegetation} waterways={settings.waterways} zoom={zoom} scale={scale} override={terrainLevel} sceneryPrototype={perspective} cachedGround={!!ground.geometry||preparedShading}/>
+    {!ground.geometry&&!preparedShading&&settings.groundShading&&<CoreTerrainGround view={view}/>}
+    <BabyloniaSurface shading={settings.groundShading} detailEnabled={settings.groundDetail} level={level} cachedGround={!!ground.geometry||preparedShading}/>
     {settings.ownershipFills&&<OwnershipLayer states={game.states} view={view} atlas={theatreEnabled}/>}
     {settings.paperGrain&&<rect className="map-paper-grain" x={view.left} y={view.top} width={view.right-view.left} height={view.bottom-view.top} fill="url(#land-grain)" clipPath="url(#physical-land)" pointerEvents="none" aria-hidden="true"/>}
-    <PhysicalFeatures shading={settings.groundShading} waterways={settings.waterways} view={view} cachedGround={!!ground.geometry}/>
+    <PhysicalFeatures shading={settings.groundShading} waterways={settings.waterways} view={view} cachedGround={!!ground.geometry||preparedShading}/>
     </g>
     {settings.labels&&settings.waterways&&<WaterLabels projection={projection} perspective={perspective} scale={scale}/>}
     {level==='dominion'&&settings.mountains&&<OverviewRanges projection={projection} view={view}/>}
@@ -209,4 +244,4 @@ export function CampaignMap({ game, camera, settings, level, terrainLevel, onSel
     </g>
     <rect className="map-theatre-edge" x={cropX} y={cropY} width={cropWidth} height={cropHeight} pointerEvents="none" aria-hidden="true"/>
   </svg>
-}
+})

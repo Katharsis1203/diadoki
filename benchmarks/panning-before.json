@@ -1,0 +1,249 @@
+{
+  "url": "http://127.0.0.1:5177",
+  "viewport": "1440×900",
+  "samples": 3,
+  "eventsPerScenario": 120,
+  "preset": "full",
+  "modes": [
+    "pan",
+    "pan-wide",
+    "zoom",
+    "selection"
+  ],
+  "records": [
+    {
+      "sample": 0,
+      "mode": "pan",
+      "scriptMs": 648.7969999999999,
+      "taskMs": 6442.653,
+      "layoutMs": 190.56599999999997,
+      "styleMs": 44.526,
+      "wallMs": 8919.632452,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 80.87800000000023,
+      "frameMedianMs": 70.5,
+      "frameP95Ms": 120.79999995231628,
+      "svgNodes": 1887
+    },
+    {
+      "sample": 0,
+      "mode": "pan-wide",
+      "scriptMs": 453.1379999999999,
+      "taskMs": 4547.343000000001,
+      "layoutMs": 141.946,
+      "styleMs": 71.13799999999999,
+      "wallMs": 6566.203479999998,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 18.807999999999936,
+      "frameMedianMs": 51.89999985694885,
+      "frameP95Ms": 87.29999995231628,
+      "svgNodes": 1832
+    },
+    {
+      "sample": 0,
+      "mode": "zoom",
+      "scriptMs": 711.679,
+      "taskMs": 5336.699999999999,
+      "layoutMs": 167.921,
+      "styleMs": 103.22900000000001,
+      "wallMs": 7372.482514000003,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 61.10000014305115,
+      "frameP95Ms": 72.79999995231628,
+      "svgNodes": 1909
+    },
+    {
+      "sample": 0,
+      "mode": "selection",
+      "scriptMs": 447.63399999999984,
+      "taskMs": 1405.6650000000027,
+      "layoutMs": 112.75200000000008,
+      "styleMs": 83.35100000000001,
+      "wallMs": 3542.804460000003,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 27.799999952316284,
+      "frameP95Ms": 39.799999952316284,
+      "svgNodes": 1981
+    },
+    {
+      "sample": 1,
+      "mode": "pan",
+      "scriptMs": 392.36700000000013,
+      "taskMs": 4213.051,
+      "layoutMs": 137.07999999999998,
+      "styleMs": 37.05200000000003,
+      "wallMs": 6621.566511999998,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 71.47499999999951,
+      "frameMedianMs": 54.09999990463257,
+      "frameP95Ms": 85.70000004768372,
+      "svgNodes": 1887
+    },
+    {
+      "sample": 1,
+      "mode": "pan-wide",
+      "scriptMs": 445.43199999999985,
+      "taskMs": 4282.065,
+      "layoutMs": 154.3549999999999,
+      "styleMs": 68.394,
+      "wallMs": 6430.699026000002,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 19.573999999998648,
+      "frameMedianMs": 51.90000009536743,
+      "frameP95Ms": 80,
+      "svgNodes": 1832
+    },
+    {
+      "sample": 1,
+      "mode": "zoom",
+      "scriptMs": 668.1789999999999,
+      "taskMs": 5799.539,
+      "layoutMs": 174.03800000000012,
+      "styleMs": 102.95099999999996,
+      "wallMs": 7843.727559999999,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 64.90000009536743,
+      "frameP95Ms": 79.39999985694885,
+      "svgNodes": 1899
+    },
+    {
+      "sample": 1,
+      "mode": "selection",
+      "scriptMs": 433.4889999999998,
+      "taskMs": 1399.0650000000003,
+      "layoutMs": 95.63799999999989,
+      "styleMs": 81.87999999999995,
+      "wallMs": 3478.961049999998,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 27.699999809265137,
+      "frameP95Ms": 41.90000009536743,
+      "svgNodes": 1981
+    },
+    {
+      "sample": 2,
+      "mode": "pan",
+      "scriptMs": 397.01399999999956,
+      "taskMs": 4330.018000000003,
+      "layoutMs": 137.87499999999997,
+      "styleMs": 39.83999999999999,
+      "wallMs": 6671.81523,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 63.0740000000003,
+      "frameMedianMs": 54.09999990463257,
+      "frameP95Ms": 86.20000004768372,
+      "svgNodes": 1887
+    },
+    {
+      "sample": 2,
+      "mode": "pan-wide",
+      "scriptMs": 431.9980000000001,
+      "taskMs": 4470.635999999999,
+      "layoutMs": 156.12099999999995,
+      "styleMs": 71.15199999999999,
+      "wallMs": 6492.803465999998,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 15.650999999998305,
+      "frameMedianMs": 52.700000047683716,
+      "frameP95Ms": 82.09999990463257,
+      "svgNodes": 1832
+    },
+    {
+      "sample": 2,
+      "mode": "zoom",
+      "scriptMs": 632.1909999999997,
+      "taskMs": 5710.234999999997,
+      "layoutMs": 173.52300000000008,
+      "styleMs": 103.62199999999999,
+      "wallMs": 7907.195833000005,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 65.10000014305115,
+      "frameP95Ms": 77.90000009536743,
+      "svgNodes": 1899
+    },
+    {
+      "sample": 2,
+      "mode": "selection",
+      "scriptMs": 398.2740000000007,
+      "taskMs": 1274.9620000000023,
+      "layoutMs": 87.64899999999986,
+      "styleMs": 73.048,
+      "wallMs": 3397.304282000012,
+      "renderers": {
+        "prepared": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 27.40000009536743,
+      "frameP95Ms": 38,
+      "svgNodes": 1981
+    }
+  ],
+  "summary": {
+    "pan": {
+      "scriptMs": 397.01399999999956,
+      "taskMs": 4330.018000000003,
+      "layoutMs": 137.87499999999997,
+      "styleMs": 39.83999999999999,
+      "wallMs": 6671.81523,
+      "releaseTaskMs": 71.47499999999951,
+      "frameMedianMs": 54.09999990463257,
+      "frameP95Ms": 86.20000004768372
+    },
+    "pan-wide": {
+      "scriptMs": 445.43199999999985,
+      "taskMs": 4470.635999999999,
+      "layoutMs": 154.3549999999999,
+      "styleMs": 71.13799999999999,
+      "wallMs": 6492.803465999998,
+      "releaseTaskMs": 18.807999999999936,
+      "frameMedianMs": 51.90000009536743,
+      "frameP95Ms": 82.09999990463257
+    },
+    "zoom": {
+      "scriptMs": 668.1789999999999,
+      "taskMs": 5710.234999999997,
+      "layoutMs": 173.52300000000008,
+      "styleMs": 103.22900000000001,
+      "wallMs": 7843.727559999999,
+      "releaseTaskMs": 0,
+      "frameMedianMs": 64.90000009536743,
+      "frameP95Ms": 77.90000009536743
+    },
+    "selection": {
+      "scriptMs": 433.4889999999998,
+      "taskMs": 1399.0650000000003,
+      "layoutMs": 95.63799999999989,
+      "styleMs": 81.87999999999995,
+      "wallMs": 3478.961049999998,
+      "releaseTaskMs": 0,
+      "frameMedianMs": 27.699999809265137,
+      "frameP95Ms": 39.799999952316284
+    }
+  }
+}

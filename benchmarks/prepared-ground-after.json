@@ -1,0 +1,149 @@
+{
+  "url": "http://127.0.0.1:5175",
+  "viewport": "1440×900",
+  "samples": 3,
+  "eventsPerScenario": 120,
+  "preset": "full",
+  "records": [
+    {
+      "sample": 0,
+      "mode": "pan",
+      "scriptMs": 503.2950000000001,
+      "taskMs": 4981.902,
+      "layoutMs": 138.66600000000003,
+      "styleMs": 35.994,
+      "wallMs": 7109.783357,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1887
+    },
+    {
+      "sample": 0,
+      "mode": "zoom",
+      "scriptMs": 777.5619999999999,
+      "taskMs": 6575.328999999999,
+      "layoutMs": 183.69799999999998,
+      "styleMs": 114.33800000000001,
+      "wallMs": 8723.189827000002,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1899
+    },
+    {
+      "sample": 0,
+      "mode": "selection",
+      "scriptMs": 465.908,
+      "taskMs": 1447.7449999999994,
+      "layoutMs": 117.69399999999996,
+      "styleMs": 91.42,
+      "wallMs": 3689.5215089999983,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1981
+    },
+    {
+      "sample": 1,
+      "mode": "pan",
+      "scriptMs": 418.17199999999974,
+      "taskMs": 4610.622999999999,
+      "layoutMs": 142.70499999999998,
+      "styleMs": 33.918999999999976,
+      "wallMs": 6883.355876000001,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1887
+    },
+    {
+      "sample": 1,
+      "mode": "zoom",
+      "scriptMs": 767.2959999999999,
+      "taskMs": 5952.711999999999,
+      "layoutMs": 179.27099999999996,
+      "styleMs": 108.761,
+      "wallMs": 8294.339945999996,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1899
+    },
+    {
+      "sample": 1,
+      "mode": "selection",
+      "scriptMs": 418.0060000000001,
+      "taskMs": 1334.0330000000015,
+      "layoutMs": 93.13499999999996,
+      "styleMs": 83.24399999999999,
+      "wallMs": 3698.714402999998,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1981
+    },
+    {
+      "sample": 2,
+      "mode": "pan",
+      "scriptMs": 420.1840000000003,
+      "taskMs": 4314.773000000003,
+      "layoutMs": 150.37,
+      "styleMs": 39.27600000000003,
+      "wallMs": 6946.9120330000005,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1887
+    },
+    {
+      "sample": 2,
+      "mode": "zoom",
+      "scriptMs": 749.1409999999998,
+      "taskMs": 5976.852000000001,
+      "layoutMs": 174.65399999999985,
+      "styleMs": 111.70599999999997,
+      "wallMs": 8218.330839000002,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1899
+    },
+    {
+      "sample": 2,
+      "mode": "selection",
+      "scriptMs": 443.72900000000027,
+      "taskMs": 1372.3370000000018,
+      "layoutMs": 89.57299999999991,
+      "styleMs": 81.92899999999992,
+      "wallMs": 3640.2274370000014,
+      "renderers": {
+        "prepared": 120
+      },
+      "svgNodes": 1981
+    }
+  ],
+  "summary": {
+    "pan": {
+      "scriptMs": 420.1840000000003,
+      "taskMs": 4610.622999999999,
+      "layoutMs": 142.70499999999998,
+      "styleMs": 35.994,
+      "wallMs": 6946.9120330000005
+    },
+    "zoom": {
+      "scriptMs": 767.2959999999999,
+      "taskMs": 5976.852000000001,
+      "layoutMs": 179.27099999999996,
+      "styleMs": 111.70599999999997,
+      "wallMs": 8294.339945999996
+    },
+    "selection": {
+      "scriptMs": 443.72900000000027,
+      "taskMs": 1372.3370000000018,
+      "layoutMs": 93.13499999999996,
+      "styleMs": 83.24399999999999,
+      "wallMs": 3689.5215089999983
+    }
+  }
+}

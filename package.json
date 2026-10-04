@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run check:ground && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "generate:world-terrain": "node --experimental-strip-types scripts/import-world-geography.mjs",
@@ -13,7 +13,10 @@
     "generate:theatre": "node --experimental-strip-types scripts/generate-theatre.mjs",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "benchmark:map": "node --experimental-strip-types scripts/benchmark-map.mjs",
-    "benchmark:browser": "node scripts/benchmark-browser.mjs"
+    "benchmark:browser": "node scripts/benchmark-browser.mjs",
+    "check:browser-pan": "node --experimental-strip-types scripts/check-map-pan.mjs",
+    "generate:ground": "node --experimental-strip-types scripts/generate-ground-artwork.mjs",
+    "check:ground": "node --experimental-strip-types scripts/check-ground-artwork.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

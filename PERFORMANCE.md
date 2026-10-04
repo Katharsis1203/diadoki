@@ -170,3 +170,68 @@ The full map regression checked **48 core polygon clicks / ten province fits**, 
 ### Remaining costs
 
 Upright peaks/vegetation still incur SVG painting, ownership uses multiply compositing, grain clips to physical land, and live faction edges/river masks remain necessary. The new switches isolate these costs on the user’s hardware. Further rasterizing upright scenery or political overlays would require separate depth/anchor/ownership validation. Terrain geometry is generated offline, and active game logic does not grow with the draft atlas. Development StrictMode intentionally repeats some lifecycle work; measurements above use production builds.
+
+## Prepared ground follow-up — 4 October 2026
+
+The default shaded ground now loads generated PNG chunks instead of painting and encoding Canvas tiles during navigation. The shared painter generates artwork offline from the existing coastline, land/lake holes and terrain brushes. Three colour profiles and two resolutions cover the full theatre with 126 images (12.00 MiB). Only requested chunks download. Live rivers, grain, political overlays, selection, labels and upright scenery retain their existing geometry and interaction.
+
+Both image renderers share the original bounded cache lifecycle: a 64 MiB decoded-pixel estimate, LRU eviction, one asynchronous job, obsolete-result rejection and object-URL cleanup. Wide prepared views choose the coarse resolution when fine images would consume over 75% of that budget. Missing or corrupt images retain vector artwork within their chunk. **Prepared terrain shading** in Settings or `/?shading=live` restores runtime painting for comparison; `/?ground=vector` restores SVG ground. Settings now has 13 switches.
+
+### Measured result
+
+The retained production runs from 3 October used the same Full-detail scenario, headless Brave, 1440×900 viewport, three samples and 120 inputs per scenario. The baseline is the retained build immediately before prepared ground. Raw records are saved in [benchmarks/prepared-ground-before.json](benchmarks/prepared-ground-before.json) and [benchmarks/prepared-ground-after.json](benchmarks/prepared-ground-after.json). Values below are medians across each complete input sequence.
+
+| Scenario | Live ground script | Prepared ground script | Script reduction | Live total task | Prepared total task |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Pan | 571 ms | 420 ms | 26% | 4.63 s | 4.61 s |
+| Zoom | 894 ms | 767 ms | 14% | 5.96 s | 5.98 s |
+| Selection | 477 ms | 444 ms | 7% | 1.44 s | 1.37 s |
+
+Prepared ground eliminates navigation-time Canvas generation and lowers scripting in this run. Total pan and zoom task times are effectively unchanged; selection varies modestly. These results do not establish an overall navigation speedup or an FPS improvement. Browser painting/compositing of the remaining SVG map still dominates. Prepared-renderer status in the report includes frames with partial image loading; initial readiness is awaited before each scenario. Cache warmth carries between scenarios, as in the baseline protocol.
+
+The initial province view has 1,899 SVG nodes versus 2,167 before, with the same 166 scenery objects, 13 terrain engraving uses and 41 ownership shapes. The application chunk is **424.64 kB / 140.52 kB gzip**; CSS and physical/theatre chunks retain their earlier sizes. The separate PNG transfer cost is explicit, and no app dependencies were added. See [MAP_GEOGRAPHY.md](MAP_GEOGRAPHY.md#prepared-ground-rendering) for generation, tuning and source-fingerprint checks.
+
+### Completion verification
+
+All **89 automated tests**, ESLint and the TypeScript/production build pass. The build checks source fingerprints, complete manifest coverage, PNG dimensions and content hashes, rejecting stale, missing or corrupt artwork. Regression coverage includes all detail/resolution combinations, geographic coverage, stable chunk demand, shared clips and coarse-resolution cache headroom.
+
+Production browser checks cover all 13 settings, presets, persistence, 48 campaign state clicks, ten campaign province fits, conquest/frontiers, labels, wheel anchoring and responsive panels. Atlas checks cover all 181 draft centre clicks and 57 province fits. Additional browser checks exercise delayed image loading, failed downloads and corrupt image decoding, selectable fallback, cache disposal/reactivation and object-URL release. Prepared navigation creates no Canvas elements, stays within the decoded estimate and works with Canvas 2D disabled. Gameplay resources remain unchanged during display checks.
+
+## Panning follow-up — 4 October 2026
+
+Profiling identified full SVG repainting during camera translation as the main pan cost. A camera-independent memoized scene now sits inside a composited parent layer during dragging. The canonical camera continues to update once per display frame, while CSS translation moves the retained rendered pixels. A buffer of up to 128 screen pixels surrounds the viewport; the scene refreshes before that buffer runs out. Release redraws the exact final camera and removes the buffer, transform and compositor hint. Zoom and ordinary views retain their normal rendering dimensions. See [MAP_GEOGRAPHY.md](MAP_GEOGRAPHY.md#panning-composition) for the coordinate and lifecycle details.
+
+### Paired production results
+
+The baseline is the prepared-ground build immediately before this pan change. Both builds ran sequentially in headless Brave at 1440×900, with Full detail, three samples and 120 inputs per scenario. Small pans use the existing 70×45-pixel oscillation; wide pans use a 450×220-pixel oscillation and exercise repeated scene refreshes and new ground-image demand. Reports retain raw samples in [benchmarks/panning-before.json](benchmarks/panning-before.json) and [benchmarks/panning-after.json](benchmarks/panning-after.json).
+
+| Scenario | Before task time | After task time | Reduction |
+| --- | ---: | ---: | ---: |
+| Small pan, including release | 4.39 s | 0.50 s | 89% |
+| Wide pan, including release | 4.49 s | 1.07 s | 76% |
+| Alternating wheel zoom | 5.71 s | 5.44 s | 5% |
+| Selection | 1.40 s | 1.34 s | 4% |
+
+Pan totals are medians of each sample's gesture task time plus its release task time. Release is measured through two further animation frames, so the final redraw is included. Median scripting while dragging falls from **397 to 78 ms** for small pans and **445 to 197 ms** for wide pans. Small-pan layout work falls from **138 to 2 ms**. Remaining image requests may complete later; these are browser task totals, not end-to-end latency or FPS estimates.
+
+| Pan scenario | Before median frame interval | After median | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Small pan | 54.1 ms | 36.8 ms | 86.2 ms | 49.1 ms |
+| Wide pan | 51.9 ms | 36.1 ms | 82.1 ms | 48.9 ms |
+
+Frame intervals are measured between animation callbacks during the input sequence. They show smoother scheduling in this session, rather than a display FPS guarantee. Median sequence wall time, including release, falls from **6.67 to 4.68 s** for small pans and **6.49 to 4.56 s** for wide pans. The reduction in main-thread work exceeds the wall-time reduction because frame scheduling/compositing remains work. Zoom still repaints live SVG: its p95 interval rises from **77.9 to 100.8 ms** in this run, despite similar total work and wall time. This change establishes a pan improvement; it does not establish a zoom improvement.
+
+### Verification and reproduction
+
+All **92 automated tests**, ESLint and the TypeScript/production build pass. New coordinate regressions cover retained translation at different scales, refresh before the buffer edge, large jumps, release, zoom and clamped cameras. Production browser checks cover desktop/mobile drag coordinates, fixed SVG cameras during small drags, viewport coverage, large jumps, release without accidental selection, wheel anchors during a translated drag, Escape, genuine touch cancellation, camera limits and resizing. The same pan checks pass with prepared images, live Canvas tiles and SVG ground. Existing settings, campaign and atlas checks pass.
+
+Province and Overview screenshot comparisons retain the same SVG/scenery counts and have no colour-channel differences above 10 levels across the full 1440×900 images. At rest, the province retains **1,899 SVG nodes / 166 scenery objects** and Overview **3,002 nodes**. The final application chunk is **426.14 kB / 140.98 kB gzip**, CSS **14.62 kB / 4.30 kB gzip**; physical/theatre chunks and prepared artwork are unchanged. No dependencies were added. The temporary composited surface has a viewport-bounded size but consumes browser/GPU memory separately from the decoded ground cache.
+
+With the optional Playwright and browser environment variables from the earlier reproduction instructions, run:
+
+```sh
+DIADOCHI_BENCHMARK_MODES=pan,pan-wide,zoom,selection npm run benchmark:browser -- http://127.0.0.1:5175 report.json
+npm run check:browser-pan -- http://127.0.0.1:5175
+```
+
+The benchmark defaults remain pan, zoom and selection. The optional modes filter adds wide sweeps; reports now record median/p95 animation intervals and release task cost. Use sequential runs with no competing browser work.

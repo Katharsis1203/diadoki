@@ -48,3 +48,13 @@ Unified core/atlas frontier edges avoid duplicate borders at their shared seam, 
 ## Performance review and display controls
 
 Added 12 persistent local display switches with Full/Light presets and an SVG/cached-ground comparison. Disabled scenery and labels skip their preparation; selections, faction frontiers, simple primary centres and gameplay remain available. Cache publication is progressive, fallback is restricted to missing tile rectangles, and cache-off disposes bitmap resources. Terrain/ownership culling, prepared overview artwork, inactive-tier omission and frame-batched pan reduce unnecessary rendering work. The audit and production benchmark protocol are in PERFORMANCE.md.
+
+## Prepared ground follow-up
+
+The default shaded map now displays generated ground-colour images directly rather than creating Canvas tiles during navigation. Geographic source geometry, coastline/land/lake masks and all live map/game layers remain intact. Both image renderers share the bounded cache lifecycle; navigation uses prepared files rather than repainting gradients. Settings adds a prepared/live comparison (13 local switches total); original cached and SVG renderers remain available. Generated imagery covers the full theatre with three detail profiles and two resolutions. Builds verify the source fingerprint and complete artwork coverage before compiling.
+
+Completion checks on 4 October 2026 passed 89 tests, lint, production build, all 13 settings, campaign/atlas selection and province fits, responsive views, image-failure fallback and cache disposal/reactivation. Builds also validate image dimensions and content hashes. The retained benchmark shows lower scripting time but effectively unchanged total pan/zoom task time; measurements and raw reports are recorded in `PERFORMANCE.md` and `benchmarks/`.
+
+## Panning follow-up
+
+Dragging now translates a retained composited SVG scene with a bounded buffer, refreshing it before new areas reach the viewport. Release settles the exact camera and removes the buffer/compositor hint. Coordinates, wheel anchoring, pointer capture, cancellation and camera limits remain validated. Paired production medians, including release, reduce small-pan task time from 4.39 to 0.50 seconds (89%) and wide-pan time from 4.49 to 1.07 seconds (76%); median pan animation intervals improve from 52–54 to 36–37 ms. Results are machine-specific and recorded in `PERFORMANCE.md` with raw reports in `benchmarks/`. All 92 tests, lint, build and desktop/mobile browser regressions pass.

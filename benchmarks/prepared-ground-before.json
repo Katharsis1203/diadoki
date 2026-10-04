@@ -1,0 +1,153 @@
+{
+  "url": "http://127.0.0.1:5177",
+  "viewport": "1440×900",
+  "samples": 3,
+  "eventsPerScenario": 120,
+  "preset": "full",
+  "records": [
+    {
+      "sample": 0,
+      "mode": "pan",
+      "scriptMs": 629.441,
+      "taskMs": 4959.916,
+      "layoutMs": 172.82899999999998,
+      "styleMs": 76.185,
+      "wallMs": 6908.7105679999995,
+      "renderers": {
+        "cached": 31,
+        "partial-cache": 89
+      },
+      "svgNodes": 2637
+    },
+    {
+      "sample": 0,
+      "mode": "zoom",
+      "scriptMs": 912.3909999999997,
+      "taskMs": 6230.289000000001,
+      "layoutMs": 179.82000000000002,
+      "styleMs": 138.065,
+      "wallMs": 8176.113234,
+      "renderers": {
+        "cached": 120
+      },
+      "svgNodes": 2167
+    },
+    {
+      "sample": 0,
+      "mode": "selection",
+      "scriptMs": 529.2910000000002,
+      "taskMs": 1582.4099999999994,
+      "layoutMs": 121.38500000000002,
+      "styleMs": 90.49100000000001,
+      "wallMs": 3684.7861410000005,
+      "renderers": {
+        "partial-cache": 36,
+        "cached": 84
+      },
+      "svgNodes": 2281
+    },
+    {
+      "sample": 1,
+      "mode": "pan",
+      "scriptMs": 571.3569999999999,
+      "taskMs": 4625.3910000000005,
+      "layoutMs": 174.67199999999994,
+      "styleMs": 70.23200000000001,
+      "wallMs": 6742.922528000003,
+      "renderers": {
+        "cached": 37,
+        "partial-cache": 83
+      },
+      "svgNodes": 2580
+    },
+    {
+      "sample": 1,
+      "mode": "zoom",
+      "scriptMs": 893.8469999999996,
+      "taskMs": 5520.589999999998,
+      "layoutMs": 189.69599999999997,
+      "styleMs": 152.821,
+      "wallMs": 7840.095542999996,
+      "renderers": {
+        "cached": 120
+      },
+      "svgNodes": 2167
+    },
+    {
+      "sample": 1,
+      "mode": "selection",
+      "scriptMs": 465.3689999999999,
+      "taskMs": 1413.5799999999997,
+      "layoutMs": 91.993,
+      "styleMs": 87.87800000000001,
+      "wallMs": 3579.726257999995,
+      "renderers": {
+        "cached": 120
+      },
+      "svgNodes": 2281
+    },
+    {
+      "sample": 2,
+      "mode": "pan",
+      "scriptMs": 530.6930000000003,
+      "taskMs": 4621.209000000001,
+      "layoutMs": 150.13599999999994,
+      "styleMs": 70.921,
+      "wallMs": 6554.513635000003,
+      "renderers": {
+        "cached": 37,
+        "partial-cache": 83
+      },
+      "svgNodes": 2514
+    },
+    {
+      "sample": 2,
+      "mode": "zoom",
+      "scriptMs": 876.7709999999997,
+      "taskMs": 5959.166000000003,
+      "layoutMs": 197.58300000000006,
+      "styleMs": 152.68300000000002,
+      "wallMs": 7917.982336000001,
+      "renderers": {
+        "cached": 120
+      },
+      "svgNodes": 2167
+    },
+    {
+      "sample": 2,
+      "mode": "selection",
+      "scriptMs": 477.42899999999986,
+      "taskMs": 1438.7040000000013,
+      "layoutMs": 92.16000000000003,
+      "styleMs": 92.13700000000003,
+      "wallMs": 3608.7226299999966,
+      "renderers": {
+        "cached": 120
+      },
+      "svgNodes": 2281
+    }
+  ],
+  "summary": {
+    "pan": {
+      "scriptMs": 571.3569999999999,
+      "taskMs": 4625.3910000000005,
+      "layoutMs": 172.82899999999998,
+      "styleMs": 70.921,
+      "wallMs": 6742.922528000003
+    },
+    "zoom": {
+      "scriptMs": 893.8469999999996,
+      "taskMs": 5959.166000000003,
+      "layoutMs": 189.69599999999997,
+      "styleMs": 152.68300000000002,
+      "wallMs": 7917.982336000001
+    },
+    "selection": {
+      "scriptMs": 477.42899999999986,
+      "taskMs": 1438.7040000000013,
+      "layoutMs": 92.16000000000003,
+      "styleMs": 90.49100000000001,
+      "wallMs": 3608.7226299999966
+    }
+  }
+}

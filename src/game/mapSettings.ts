@@ -3,7 +3,7 @@ export const MAP_SETTINGS_KEY='diadochi.map-display.v1'
 export const DEFAULT_MAP_SETTINGS={
   mountains:true,vegetation:true,settlements:true,groundShading:true,paperGrain:true,
   waterways:true,groundDetail:true,ownershipFills:true,provinceBorders:true,stateBorders:true,
-  labels:true,cachedGround:true,
+  labels:true,cachedGround:true,preparedShading:true,
 } as const
 export type MapSetting=keyof typeof DEFAULT_MAP_SETTINGS
 export type MapSettings={[K in MapSetting]:boolean}
@@ -33,6 +33,7 @@ export const mapSettingGroups:readonly {name:string;options:readonly {key:MapSet
     {key:'stateBorders',name:'State divisions',description:'Ordinary district lines; selected state outlines remain.'},
   ]},
   {name:'Rendering comparison',options:[
+    {key:'preparedShading',name:'Prepared terrain shading',description:'Reuse pre-rendered colour washes. Turn off to compare live gradients.'},
     {key:'cachedGround',name:'Cached ground',description:'Reuse terrain image tiles. Turn off to compare with SVG ground.'},
   ]},
 ]

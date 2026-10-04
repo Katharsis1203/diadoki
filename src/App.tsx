@@ -7,7 +7,7 @@ import { CampaignMap } from './components/CampaignMap'
 import { CampaignHud, CampaignPanels } from './components/CampaignPanels'
 import { TheatreInspector } from './components/TheatreDistricts'
 import { theatreDistrictById, theatreRegionById, theatreStateAt } from './game/theatreGeography'
-import { INITIAL_CAMERA, clampMapCamera, worldOverviewCamera, focusCamera, MAP_HEIGHT, MAP_WIDTH, MIN_ZOOM, MAX_ZOOM, mapLevel } from './game/mapView'
+import { INITIAL_CAMERA, clampMapCamera, worldOverviewCamera, focusCamera, MIN_ZOOM, MAX_ZOOM, mapLevel } from './game/mapView'
 import { worldRegionAt } from './game/worldTerrain'
 import { territoryAt } from './game/geography'
 import type { Camera, MapLevel } from './game/mapView'
@@ -34,6 +34,7 @@ function App() {
   const [openPanel, setOpenPanel] = useState<'roster' | 'log' | null>(null)
   const [stateDetail, setStateDetail] = useState<MapLevel | null>(null)
   const [freeCamera, setCamera] = useState(INITIAL_CAMERA)
+  const [panning,setPanning]=useState(false)
   const [cameraMode, setCameraMode] = useState<'province'|'overview'|'free'>('province')
   const [focusedProvinceId, setFocusedProvinceId] = useState('babylonia')
   const [selectedDraftId,setSelectedDraftId] = useState<string|null>(null)
@@ -43,12 +44,19 @@ function App() {
   const suppressClick = useRef(false)
   const pendingPan=useRef<Camera|null>(null)
   const panFrame=useRef<number|null>(null)
+  const cancelDrag=useCallback(()=>{
+    drag.current=null
+    pendingPan.current=null
+    if(panFrame.current!==null){cancelAnimationFrame(panFrame.current);panFrame.current=null}
+    setPanning(false)
+  },[])
   useEffect(()=>()=>{if(panFrame.current!==null)cancelAnimationFrame(panFrame.current)},[])
   useEffect(() => {
     const resize = () => setViewport({width:window.innerWidth,height:window.innerHeight})
     window.addEventListener('resize',resize)
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
+      cancelDrag()
       setOpenPanel(null)
       setSettingsOpen(false)
       setSelectedDraftId(null)
@@ -56,7 +64,7 @@ function App() {
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => {window.removeEventListener('keydown', closeOnEscape);window.removeEventListener('resize',resize)}
-  }, [])
+  }, [cancelDrag])
   const state = selectedState(game)
   const province = game.provinces.find((p) => p.id === state?.provinceId)
   const draft = selectedDraftId?theatreDistrictById.get(selectedDraftId):undefined
@@ -86,28 +94,28 @@ function App() {
     dispatch({ type: 'selectState', id: null })
   }, [])
   const resetGame = useCallback(() => {
+    cancelDrag()
     dispatch({type:'reset'}); setOpenPanel(null); setStateDetail(null);setSelectedDraftId(null)
     setFocusedProvinceId('babylonia'); setCameraMode('province')
-  }, [])
+  }, [cancelDrag])
   const zoomMap = (factor: number, anchor?: MapPoint) => {
     const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, camera.zoom * factor))
     if (zoom === camera.zoom) return
-    drag.current = null
-    pendingPan.current=null
-    if(panFrame.current!==null){cancelAnimationFrame(panFrame.current);panFrame.current=null}
+    cancelDrag()
     setStateDetail(null)
     setCameraMode('free')
     setCamera(cameraAtZoom(camera, zoom, anchor))
   }
-  const focusProvince = useCallback(() => {setFocusedProvinceId(province?.id??draftProvince?.id??focusedProvinceId);setCameraMode('province');setStateDetail(null)}, [province,draftProvince,focusedProvinceId])
-  const overview = () => {setCameraMode('overview');setStateDetail(null);dismiss()}
+  const focusProvince = useCallback(() => {cancelDrag();setFocusedProvinceId(province?.id??draftProvince?.id??focusedProvinceId);setCameraMode('province');setStateDetail(null)}, [province,draftProvince,focusedProvinceId,cancelDrag])
+  const overview = () => {cancelDrag();setCameraMode('overview');setStateDetail(null);dismiss()}
   const startDrag = (event: PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return
     suppressClick.current = false
-    const rect = event.currentTarget.getBoundingClientRect()
+    const scale=event.currentTarget.getScreenCTM()?.a
+    if(!scale)return
     drag.current = {
       x: event.clientX, y: event.clientY, cameraX: camera.x, cameraY: camera.y,
-      scale: Math.min(rect.width / (MAP_WIDTH / camera.zoom), rect.height / (MAP_HEIGHT / camera.zoom)), moved: false,
+      scale, moved: false,
     }
   }
   const moveDrag = (event: PointerEvent<SVGSVGElement>) => {
@@ -116,6 +124,7 @@ function App() {
     const dx = event.clientX - start.x, dy = event.clientY - start.y
     if (!start.moved && Math.hypot(dx, dy) < 6) return
     start.moved = true
+    setPanning(true)
     suppressClick.current = true
     event.currentTarget.setPointerCapture(event.pointerId)
     const [panX,panY]=cameraPan(dx,dy,start.scale,mapProjection(perspective))
@@ -127,6 +136,7 @@ function App() {
   }
   const stopDrag = () => {
     drag.current=null
+    setPanning(false)
     if(panFrame.current!==null){cancelAnimationFrame(panFrame.current);panFrame.current=null}
     if(pendingPan.current){setCameraMode('free');setCamera(pendingPan.current);pendingPan.current=null}
   }
@@ -138,7 +148,7 @@ function App() {
         <section className="map-panel" aria-labelledby="map-title">
           <h2 id="map-title" className="sr-only">A divided empire · Campaign map</h2>
           <div className="map-location" aria-live="polite"><p className="eyebrow">{level==='dominion'?'The successor kingdoms':viewingDraft?'Province map draft':level==='state'?'Local inspection':viewedProvince?'Province campaign':'Terrain inspection'}</p><p>{level==='dominion'?(camera.zoom<.65?'Italy to the Ganges':'A divided empire'):viewedName}<small>{level!=='dominion'&&(viewedProvince?`${viewedProvince.stateIds.length} states · ${viewingDraft?'Map draft':`${game.orders} orders available`}`:'Terrain foundation · Drag to explore')}</small></p></div>
-          <CampaignMap game={game} camera={camera} settings={mapSettings} level={level} terrainLevel={terrainLevel} onSelect={select} selectedDraftId={selectedDraftId} onSelectDraft={selectDraft} onBackground={dismiss} suppressClick={suppressClick}
+          <CampaignMap game={game} camera={camera} panning={panning} settings={mapSettings} level={level} terrainLevel={terrainLevel} onSelect={select} selectedDraftId={selectedDraftId} onSelectDraft={selectDraft} onBackground={dismiss} suppressClick={suppressClick}
             onZoom={zoomMap} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} />
         </section>
         <CampaignPanels game={game} dispatch={dispatch} openPanel={openPanel} setOpenPanel={setOpenPanel} select={select} dismiss={dismiss} focusProvince={focusProvince}/>

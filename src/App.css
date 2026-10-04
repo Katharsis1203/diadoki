@@ -13,7 +13,11 @@ button.secondary:hover:not(:disabled), button.secondary[aria-expanded="true"] { 
 .game-layout, .map-panel { position: fixed; inset: 0; }
 .game-layout { z-index: 0; }
 .map-panel { background: #91bbc5; }
+.map-viewport { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+.map-pan-layer { position: absolute; inset: 0; }
+.map-pan-layer[data-panning="true"] { will-change: transform; }
 .campaign-map { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; background: #91bbc5; }
+.map-pan-layer > .campaign-map { position: absolute; }
 /* One continuous parchment landscape; political lines sit above the relief. */
 .map-margin { fill: #e4d2aa; }
 .map-theatre-edge { fill: none; stroke: #987d53; stroke-width: .8; vector-effect: non-scaling-stroke; }
