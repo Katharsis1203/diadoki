@@ -1,3 +1,4 @@
+import { canTravelDirectly } from '../game/mountainTerrain'
 import { memo } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { battlePreview, COST, factions, income, leader, movementPath, ownerName, phase, PLAYER, provinceStates, provinceSummary, recruit, selectedProvince, selectedState, stateDefense, stateIncome, unavailable } from '../game/engine'
@@ -65,6 +66,7 @@ export const CampaignPanels = memo(function CampaignPanels({game,dispatch,openPa
           <p className="subtle local-summary">{state.terrain} · {state.garrison} garrison · Fort level {state.buildings.fort}{state.settlementIds.length > 0 && <> · {game.settlements.filter((p) => p.stateId === state.id).map((p) => p.name).join(', ')}</>}</p>
           {state.landscape && <p className="subtle terrain-summary">{state.landscape}</p>}
           <p className="subtle">Borders {state.neighbors.map((id, i) => <span key={id}>{i > 0 && ', '}<button className="state-link" onClick={() => select(id)}>{game.states.find((p) => p.id === id)?.name}</button></span>)}.</p>
+          {state.neighbors.some(id=>!canTravelDirectly(state.id,id))&&<p className="subtle mountain-route-note">Mountain barriers toward {state.neighbors.filter(id=>!canTravelDirectly(state.id,id)).map(id=>game.states.find(s=>s.id===id)!.name).join(', ')}. Use an open pass or valley approach.</p>}
           <label htmlFor="commander">Field commander</label>
           <select id="commander" value={game.selectedCommanderId} disabled={!!game.battle || ended} onChange={(e) => dispatch({ type: 'selectCommander', id: e.target.value })}>
             {game.commanders.filter((c) => c.faction === PLAYER).map((c) => <option key={c.id} value={c.id}>{c.name} · {c.troops} troops</option>)}

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { DEFAULT_MAP_SETTINGS, LIGHT_MAP_SETTINGS, parseMapSettings } from '../src/game/mapSettings.ts'
 import { createInitialState } from '../src/game/data.ts'
-import { sceneryObjects } from '../src/game/babyloniaScenery.ts'
+import { campaignScenery, sceneryObjects } from '../src/game/babyloniaScenery.ts'
 import { mapProjection } from '../src/game/mapProjection.ts'
 import { prepareMapScene } from '../src/game/mapScene.ts'
 import { GroundTileCache, groundTileFromKey, planGroundTiles, groundTileClip } from '../src/game/groundTiles.ts'
@@ -26,15 +26,16 @@ test('switching visual layers omits artwork and label preparation without changi
   const full=sceneryObjects(projection,2.5,3,'state',game.states)
   assert.ok(full.some(s=>s.placement.asset==='mountain'))
   assert.ok(full.some(s=>s.placement.asset==='trees'))
-  assert.equal(full.filter(s=>s.placement.asset==='settlement').length,7)
+  const centres=campaignScenery.filter(p=>p.asset==='settlement').length
+  assert.equal(full.filter(s=>s.placement.asset==='settlement').length,centres)
   const bare={...DEFAULT_MAP_SETTINGS,mountains:false,vegetation:false,settlements:false,labels:false}
   assert.deepEqual(sceneryObjects(projection,2.5,3,'state',game.states,bare),[])
   for(const level of ['province','dominion','state'] as const){
     const scene=prepareMapScene(game,projection,2.5,3,level,true,true,bare)
     assert.deepEqual(scene.labels,[]);assert.deepEqual(scene.dominionLabels,[]);assert.deepEqual(scene.localDetails,[])
     assert.deepEqual(scene.objects,[])
-    assert.equal(scene.simpleCentres.length,level==='dominion'?0:7,'Every primary centre has a simplified replacement')
-    assert.equal(scene.provinceSeats.length,10,'Primary centre markers remain available')
+    assert.equal(scene.simpleCentres.length,level==='dominion'?0:centres,'Every illustrated settlement has a simplified replacement')
+    assert.equal(scene.provinceSeats.length,11,'Primary centre markers remain available')
   }
   const mountainsOff=sceneryObjects(projection,2.5,3,'state',game.states,{...DEFAULT_MAP_SETTINGS,mountains:false})
   assert.ok(mountainsOff.some(s=>s.placement.asset==='trees'))

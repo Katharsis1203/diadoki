@@ -1,15 +1,17 @@
+import { atlasLand, atlasPassableNeighbors, landAnchors, landLabels, provinceLandLabels } from './mountainGeometry.ts'
 import { theatreProvinces, theatreStates } from './theatreContent.ts'
-import { theatreVertices, theatreStateRings, theatreProvinceLabels, theatreStateLabels, theatreSettlementAnchors, theatreNeighbors } from './theatreGeometry.ts'
+import { theatreVertices, theatreStateRings } from './theatreGeometry.ts'
 import { boundsIntersect, pointBounds } from './mapViewport.ts'
 import type { MapPoint } from './mapProjection.ts'
 
 // Everything expensive is generated offline or prepared once here. Camera
 // frames only cull polygons and choose labels; no runtime polygon operations.
 export const theatreDistricts = theatreStates.map(state => {
-  const polygons = theatreStateRings[state.id].map(poly=>poly.map(ring=>ring.map(i=>theatreVertices[i])))
+  const polygons = atlasLand[state.id].map(poly=>poly.map(ring=>ring.map(p=>p as unknown as MapPoint)))
   const path = polygons.flat().map(ring=>`M${ring.map(p=>p.join(',')).join('L')}Z`).join('')
-  return {...state,polygons,path,bounds:pointBounds(polygons.flat(2)),
-    anchor:theatreSettlementAnchors[state.id],label:theatreStateLabels[state.id],neighbors:theatreNeighbors[state.id]}
+  const administrativePath=theatreStateRings[state.id].flat().map(ring=>`M${ring.map(i=>theatreVertices[i].join(',')).join('L')}Z`).join('')
+  return {...state,polygons,path,administrativePath,bounds:pointBounds(polygons.flat(2)),
+    anchor:landAnchors[state.id],label:landLabels[state.id],neighbors:atlasPassableNeighbors[state.id]}
 })
 export type TheatreDistrict = typeof theatreDistricts[number]
 export const theatreDistrictById = new Map(theatreDistricts.map(s=>[s.id,s]))
@@ -27,7 +29,7 @@ export const theatreBorders = [...edges.values()].map(({a,b,states})=>({
 export const theatreRegions = theatreProvinces.map(province=>{
   const children=new Set(province.stateIds)
   const districts=province.stateIds.map(id=>theatreDistrictById.get(id)!)
-  return {...province,label:theatreProvinceLabels[province.id],districts,
+  return {...province,label:provinceLandLabels[province.id],districts,
     bounds:pointBounds(districts.flatMap(s=>[[s.bounds.left,s.bounds.top],[s.bounds.right,s.bounds.bottom]] as MapPoint[])),
     borderPath:theatreBorders.filter(e=>e.states.filter(id=>children.has(id)).length===1).map(e=>e.path).join('')}
 })

@@ -1,0 +1,102 @@
+{
+  "url": "http://127.0.0.1:5175",
+  "viewport": "1440×900",
+  "samples": 2,
+  "eventsPerScenario": 60,
+  "preset": "full",
+  "omitted": [
+    "groundDetail"
+  ],
+  "modes": [
+    "pan-wide",
+    "zoom"
+  ],
+  "records": [
+    {
+      "sample": 0,
+      "mode": "pan-wide",
+      "scriptMs": 105.57400000000003,
+      "taskMs": 445.48699999999997,
+      "layoutMs": 15.472,
+      "styleMs": 17.809,
+      "wallMs": 2090.0102879999995,
+      "renderers": {
+        "prepared": 60
+      },
+      "releaseTaskMs": 2.6840000000001307,
+      "frameMedianMs": 32.30000019073486,
+      "frameP95Ms": 46.5,
+      "svgNodes": 2136
+    },
+    {
+      "sample": 0,
+      "mode": "zoom",
+      "scriptMs": 414.751,
+      "taskMs": 2015.8080000000002,
+      "layoutMs": 130.89800000000002,
+      "styleMs": 60.907000000000004,
+      "wallMs": 2986.9846590000006,
+      "renderers": {
+        "prepared": 60
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 47.59999990463257,
+      "frameP95Ms": 90.29999995231628,
+      "svgNodes": 2318
+    },
+    {
+      "sample": 1,
+      "mode": "pan-wide",
+      "scriptMs": 74.25100000000006,
+      "taskMs": 411.37500000000006,
+      "layoutMs": 11.140999999999984,
+      "styleMs": 15.580999999999998,
+      "wallMs": 1918.3811420000002,
+      "renderers": {
+        "prepared": 60
+      },
+      "releaseTaskMs": 2.0999999999999908,
+      "frameMedianMs": 29.200000047683716,
+      "frameP95Ms": 39.5,
+      "svgNodes": 2136
+    },
+    {
+      "sample": 1,
+      "mode": "zoom",
+      "scriptMs": 443.93000000000006,
+      "taskMs": 2022.8160000000003,
+      "layoutMs": 140.14800000000002,
+      "styleMs": 70.80499999999999,
+      "wallMs": 3197.898053000001,
+      "renderers": {
+        "prepared": 60
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 50.60000014305115,
+      "frameP95Ms": 93.80000019073486,
+      "svgNodes": 2318
+    }
+  ],
+  "summary": {
+    "pan-wide": {
+      "scriptMs": 105.57400000000003,
+      "taskMs": 445.48699999999997,
+      "layoutMs": 15.472,
+      "styleMs": 17.809,
+      "wallMs": 2090.0102879999995,
+      "releaseTaskMs": 2.6840000000001307,
+      "frameMedianMs": 32.30000019073486,
+      "frameP95Ms": 46.5
+    },
+    "zoom": {
+      "scriptMs": 443.93000000000006,
+      "taskMs": 2022.8160000000003,
+      "layoutMs": 140.14800000000002,
+      "styleMs": 70.80499999999999,
+      "wallMs": 3197.898053000001,
+      "releaseTaskMs": 0,
+      "frameMedianMs": 50.60000014305115,
+      "frameP95Ms": 93.80000019073486
+    }
+  }
+}

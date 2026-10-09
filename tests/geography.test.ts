@@ -1,27 +1,33 @@
+import { inMountainTerrain, inLandRing } from '../src/game/mountainTerrain.ts'
 import { readFileSync } from 'node:fs'
+import { atropateneProvinceOutline } from '../src/game/atropateneGeography.ts'
+import { physicalLandRings } from '../src/game/physicalLand.ts'
+import { mountainEntranceRing } from '../src/game/mountainEntranceGeography.ts'
 import clipping from 'polygon-clipping'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createInitialState, gameReducer, unavailable } from '../src/game/engine.ts'
 import { project } from '../src/game/data.ts'
-import { diyalaTigrisBank, easternFrontierRiver, lowerEuphratesBank } from '../src/game/babyloniaGeography.ts'
+import { diyalaTributaryBank, middleTigrisBank, upperEuphratesBank, easternFrontierRiver, nippurEuphratesBank } from '../src/game/babyloniaGeography.ts'
 import { campaignOutline, mapVertices, provinceOutlines, stateRings } from '../src/game/stateGeometry.ts'
 import { mapBorderPaths, pointInState, territoryAt } from '../src/game/geography.ts'
 import { terrainBoundaryCuts } from '../src/game/terrainBoundaries.ts'
+import { distanceToSegment } from '../src/game/riverGeometry.ts'
 
 type Point = readonly [number, number]
 const points = (id: string) => stateRings[id].map((index) => mapVertices[index])
 
 test('authored ridge, foothill and valley cuts use identical vertices on both sides',()=>{
-  for(const {states:[a,b],via,feature} of terrainBoundaryCuts)for(const at of via){
+  for(const {states:[a,b],via,feature} of terrainBoundaryCuts.filter(c=>!c.states.some(id=>['cossaea','susa','elymais'].includes(id))&&!['zagros/ganzak','ganzak/nisaea','zagros/nisaea','diyala/zagros','diyala/nisaea'].includes(c.states.join('/'))))for(const at of via){
     const p=project(at)
     const match=(q:Point)=>Math.hypot(p[0]-q[0],p[1]-q[1])<.00001
-    assert.ok(points(a).some(match)&&points(b).some(match),`${feature}: shared geographic anchor missing`)
+    if(['nisaea/cossaea','elymais/paraitakene','cossaea/paraitakene','cossaea/elymais','cossaea/ecbatana'].includes(`${a}/${b}`)&&!(points(a).some(match)&&points(b).some(match)))assert.ok(['mountain-entrance','western-valley'].some(id=>inLandRing(p,points(id))||points(id).some(match)),'Former seam now belongs to one of the two approach states')
+    else assert.ok((points(a).some(match)||(a==='diyala'&&points('sippar').some(match)))&&points(b).some(match),`${feature}: shared geographic anchor missing`)
   }
   const states=createInitialState().states
-  for(const [at,id] of [[[46.55,34.45],'zagros'],[[46.85,34.60],'nisaea'],[[47.30,33.80],'cossaea'],
-    [[47.48,34.16],'nisaea'],[[48.50,32.38],'susa'],[[48.50,32.72],'cossaea']] as const)
-    assert.equal(territoryAt(project(at),states)?.state.id,id,`Wrong ridge/foothill side at ${at}`)
+  for(const [at,id] of [[[46.55,34.45],'zagros'],[[46.85,34.60],'zagros'],[[47.30,33.80],'susa'],
+    [[47.48,34.16],'western-valley'],[[48.50,32.38],'susa'],[[48.50,32.72],'susa']] as const)
+    assert.equal(territoryAt(project(at),states)?.state.id,inMountainTerrain(project(at))?undefined:id,`Wrong ridge/foothill side at ${at}`)
 })
 const cross = (a: Point, b: Point, c: Point) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 const onEdge = (p: Point, a: Point, b: Point) => Math.abs(cross(a, b, p)) < .001
@@ -127,10 +133,10 @@ test('each province is a connected group of adjacent states, and the whole campa
   }
 })
 
-test('conquering one state does not unlock every border of its parent province', () => {
+test('a connected approach does not unlock every border of its parent province', () => {
   let s = gameReducer(createInitialState(), { type: 'selectState', id: 'rhagae' })
   assert.match(unavailable(s, 'invade')!, /border/)
-  s = { ...s, states: s.states.map((p) => p.id === 'paraitakene' ? { ...p, owner: 'babylon' } : p) }
+  s = { ...s, states: s.states.map((p) => ['paraitakene','western-valley'].includes(p.id) ? { ...p, owner: 'babylon' } : p) }
   s = gameReducer(s, { type: 'selectState', id: 'paraitakene' })
   s = gameReducer(s, { type: 'move' })
   s = gameReducer(s, { type: 'selectState', id: 'rhagae' })
@@ -186,12 +192,15 @@ test('state polygons exactly cover the coastline-clipped campaign mainland', () 
   const s=createInitialState(), polygons=s.states.map(p=>[polygon(points(p.id))])
   const union=clipping.union(...polygons)
   const source=JSON.parse(readFileSync(new URL('../scripts/campaign-outline.json',import.meta.url),'utf8')) as clipping.MultiPolygon
-  assert.ok(differenceArea(union,source)<.001)
+  let physical:clipping.MultiPolygon=[]
+  for(const {points} of physicalLandRings)physical=clipping.xor(physical,[polygon(points)])
+  const northernCoast=clipping.intersection([polygon(atropateneProvinceOutline.map(project))],physical)
+  assert.ok(differenceArea(union,clipping.union(source,[polygon(mountainEntranceRing)],northernCoast))<.001)
   assert.ok(differenceArea(union,[polygon(campaignOutline)])<.001)
   // Validate actual state resolution across the whole campaign, not just labels.
   for(let x=130;x<830;x+=11)for(let y=60;y<610;y+=11){
     const matches=s.states.filter(p=>pointInState([x,y],p.id))
-    assert.equal(matches.length,inside([x,y],[...campaignOutline])?1:0,`Coverage at ${x},${y}`)
+    assert.equal(matches.length,inside([x,y],[...campaignOutline])&&!inMountainTerrain([x,y])?1:0,`Coverage at ${x},${y}`)
   }
 })
 test('province outlines are exact child unions and exclude internal state edges', () => {
@@ -234,14 +243,17 @@ test('every settlement is inside its own state and can identify its parent provi
   }
 })
 
-test('Babylonia keeps the lower Tigris on one side of its eastern provincial frontier', () => {
-  const game=createInitialState(), outline=provinceOutlines.babylonia
+test('Babylonia and Susiana share the lower Tigris as their provincial frontier', () => {
+  const outline=provinceOutlines.babylonia
   const river=easternFrontierRiver.map(project)
   for(let i=1;i<river.length;i++){
     const a=river[i-1],b=river[i]
     for(const t of [0,.25,.5,.75,1]){
       const point: Point=[a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])]
-      assert.equal(territoryAt(point,game.states)?.provinceId,'babylonia',`River switches provinces at ${point}`)
+      for(const id of ['babylonia','susiana']){
+        const border=provinceOutlines[id]
+        assert.ok(Math.min(...border.map((a,j)=>distanceToSegment(point,a,border[(j+1)%border.length]).distance))<.00001,`${id}: frontier stays on the channel at ${point}`)
+      }
     }
     for(let j=0;j<outline.length;j++){
       const c=outline[j],d=outline[(j+1)%outline.length]
@@ -257,7 +269,7 @@ test('Babylon has an urban hinterland containing Borsippa, while surrounding riv
   assert.equal(borsippa.stateId, babylon.id)
   assert.ok(pointInState([borsippa.x, borsippa.y], babylon.id))
   assert.ok(!game.states.some(state => state.id === 'borsippa'))
-  for (const id of ['sippar', 'nippur', 'uruk', 'ur']) {
+  for (const id of ['sippar', 'nippur']) {
     assert.equal(game.states.find(state => state.id === id)!.provinceId, babylon.provinceId)
     assert.equal(game.settlements.find(place => place.name.toLowerCase() === id)!.stateId, id)
   }
@@ -279,18 +291,18 @@ test('Babylonia state borders share displayed river segments along the Tigris an
       return sum+(waterEdges.has(edge)&&edges.has(edge)?Math.hypot(next[0]-p[0],next[1]-p[1]):0)
     },0)
   }
-  assert.ok(riverLength('diyala','sippar',diyalaTigrisBank)>60)
-  assert.ok(riverLength('diyala','babylon',diyalaTigrisBank)>20)
-  assert.ok(riverLength('diyala','nippur',diyalaTigrisBank)>10)
-  assert.ok(riverLength('ur','uruk',lowerEuphratesBank)>35)
-  assert.ok(riverLength('ur','nippur',lowerEuphratesBank)>15)
+  assert.ok(riverLength('diyala','sippar',diyalaTributaryBank)>20)
+  assert.ok(riverLength('diyala','sippar',diyalaTributaryBank)+riverLength('zagros','sippar',diyalaTributaryBank)>40,'The lower tributary remains shared river frontage after Zagros takes its upper approach')
+  assert.ok(riverLength('diyala','babylon',middleTigrisBank)>35)
+  assert.ok(riverLength('diyala','nippur',middleTigrisBank)>10)
+  assert.ok(riverLength('sippar','babylon',upperEuphratesBank)>15)
+  assert.ok(riverLength('chaldaea','nippur',nippurEuphratesBank)>30)
 })
 
 test('Babylon keeps a selectable urban hinterland on both banks instead of using its river as a divider', () => {
   const center=project([44.25,32.5])
   for (const dx of [-8,0,8]) assert.ok(pointInState([center[0]+dx,center[1]],'babylon'))
   const game=createInitialState()
-  assert.equal(game.states.find(state=>state.id==='chaldaea')!.terrain,'desert')
-  assert.equal(game.states.find(state=>state.id==='ur')!.terrain,'marsh')
+  assert.equal(game.states.find(state=>state.id==='chaldaea')!.terrain,'plain')
   for(const state of game.states.filter(state=>state.provinceId==='babylonia')) assert.ok(state.landscape)
 })

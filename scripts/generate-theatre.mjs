@@ -1,4 +1,7 @@
 import fs from 'node:fs'
+import { roundedBorder, roundedOpenBorder } from '../src/game/borderCurves.ts'
+import { ridgeBaseLine } from '../src/game/ridgeBorders.ts'
+import { persisProvinceOutline, persisDistrictMasks, pasargadaePassOutline, persisCoastalCut, persisWesternCut } from '../src/game/persisGeography.ts'
 import clipping from 'polygon-clipping'
 import { theatreStates, theatreProvinces, theatreFootprints } from '../src/game/theatreContent.ts'
 import { project } from '../src/game/data.ts'
@@ -56,7 +59,10 @@ const seeds=theatreStates.map(state=>{
     if(!point)throw new Error(`${state.id}: centre outside the theatre land`)
     console.log(`Coast anchor ${state.id}: ${Math.hypot(point[0]-original[0],point[1]-original[1]).toFixed(2)} map units inward.`)
   }
-  return {...state,point:round(point)}
+  // Keep the original catchment seeds until the authored Persis partition is
+  // applied, so moving a settlement cannot reshape neighbouring provinces.
+  const persisSeed=state.id==='western-foothills'?[53.8,32.1]:state.id==='pasargadae'?[53.85,30.90]:null
+  return {...state,point:persisSeed?project(persisSeed):round(point)}
 })
 const box=[[mapBounds.left,mapBounds.top],[mapBounds.right,mapBounds.top],[mapBounds.right,mapBounds.bottom],[mapBounds.left,mapBounds.bottom]]
 const halfPlane=(ring,a,b,limit)=>{
@@ -95,7 +101,7 @@ for(const [id,ring] of Object.entries(rings))ring.forEach((a,i)=>{
 const byId=new Map(seeds.map(s=>[s.id,s]))
 // Guide boundaries with the geographic axes, never individual mountain icons.
 const features=[...coreRivers.flatMap(r=>r.mapLines.map(points=>({id:r.id,kind:'river',points}))),
-  ...coreRangeGround.map(r=>({id:r.id,kind:'ridge',points:r.mapPoints}))]
+  ...coreRangeGround.flatMap(r=>[-1,1].map(side=>({id:`${r.id}-base-${side}`,kind:'ridge',points:ridgeBaseLine(r.mapPoints,r.width,side,r.endScale)})))]
   .map(f=>({...f,segments:f.points.slice(1).map((b,i)=>[f.points[i],b])}))
 const nearest=(p,feature)=>feature.segments.map(([a,b])=>distance(p,a,b)).sort((a,b)=>a.distance-b.distance)[0]
 const guide=(a,b,edge)=>{
@@ -193,6 +199,66 @@ for(let pass=0;pass<seeds.length;pass++){
 }
 console.log(`Joined ${transfers} detached mainland pieces to adjoining districts.`)
 
+// Repartition the Persis basin on the shared mesh. Retained neighbours keep
+// their existing land; transferred strips are assigned to adjoining catchments.
+// Relocate the replacement seat only after the unchanged initial catchments are built.
+byId.get('western-foothills').point=project(byId.get('western-foothills').center)
+byId.get('pasargadae').point=project(byId.get('pasargadae').center)
+const beforePersis=clipping.union(...Object.values(districts).map(closed))
+const persisIds=theatreProvinces.find(p=>p.id==='persis').stateIds
+const adjoining=['hecatompylos','hyrcanian-foothills','karmana','carmanian-uplands']
+const oldPersis=clipping.union(...persisIds.map(id=>closed(districts[id])))
+const pool=clipping.union(oldPersis,...adjoining.map(id=>closed(districts[id])))
+const pass=clipping.intersection(pool,polygon(roundedBorder(pasargadaePassOutline.map(project))))
+const basin=clipping.union(clipping.intersection(pool,polygon(roundedBorder(persisProvinceOutline.map(project)))),pass)
+const removed=clipping.difference(oldPersis,basin)
+for(const id of adjoining){
+  let catchment=box
+  const seed=byId.get(id)
+  for(const other of adjoining.map(id=>byId.get(id))){
+    if(other.id===id)continue
+    const [x,y]=seed.point,[ox,oy]=other.point
+    catchment=halfPlane(catchment,2*(ox-x),2*(oy-y),ox*ox+oy*oy-x*x-y*y)
+  }
+  districts[id]=clean(clipping.union(clipping.difference(closed(districts[id]),basin),clipping.intersection(removed,polygon(catchment))))
+}
+let remaining=basin
+for(const {stateId,outline} of persisDistrictMasks){
+  const mask=polygon(roundedBorder(outline.map(project)))
+  const district=clipping.intersection(remaining,stateId==='pasargadae'?clipping.union(mask,pass):mask)
+  districts[stateId]=clean(district)
+  remaining=clipping.difference(remaining,district)
+}
+for(const [stateId,cut,closure] of [
+  ['persian-coast',persisCoastalCut,[[58,25],[48,25]]],
+  ['western-persis',persisWesternCut,[[48,25]]],
+]){
+  const mask=polygon([...roundedOpenBorder(cut.map(project)),...closure.map(project)])
+  const district=clipping.intersection(remaining,mask)
+  districts[stateId]=clean(district)
+  remaining=clipping.difference(remaining,district)
+}
+// Tiny enclosed shoulders beside the capital must not become disconnected
+// southern pieces of the plateau. Join each to an adjacent bounded district.
+const plateauParts=remaining.sort((a,b)=>ringArea(b[0])-ringArea(a[0]))
+for(const fragment of plateauParts.slice(1)){
+  if(ringArea(fragment[0])>1000)throw new Error('Disconnected plateau hinterland')
+  const centre=fragment[0].reduce((p,q)=>[p[0]+q[0]/fragment[0].length,p[1]+q[1]/fragment[0].length],[0,0])
+  const candidates=persisIds.filter(id=>id!=='western-foothills').sort((a,b)=>Math.hypot(...byId.get(a).point.map((v,i)=>v-centre[i]))-Math.hypot(...byId.get(b).point.map((v,i)=>v-centre[i])))
+  // A southern shoulder belongs with the coastal hinterland, preserving the
+  // capital's rounded contour instead of attaching a squared corner to it.
+  if(centre[1]>project([54,29.5])[1])candidates.unshift(...candidates.splice(candidates.indexOf('persian-coast'),1))
+  const neighbour=candidates.find(id=>clipping.union(closed(districts[id]),[fragment]).filter(p=>ringArea(p[0])>20).length===1)
+  if(!neighbour)throw new Error('Plateau shoulder has no connected neighbour')
+  districts[neighbour]=clean(clipping.union(closed(districts[neighbour]),[fragment]))
+}
+districts['western-foothills']=clean(plateauParts.slice(0,1))
+const afterPersis=clipping.union(...Object.values(districts).map(closed))
+if(area(clipping.xor(beforePersis,afterPersis))>1e-4)throw new Error('Persis partition changed the atlas footprint')
+if(Object.values(districts).reduce((sum,p)=>sum+area(p),0)-area(afterPersis)>1e-4)throw new Error('Persis partition overlaps')
+for(const seed of seeds)if(!inside(seed.point,districts[seed.id]))throw new Error(`${seed.id}: authored border excludes its centre`)
+console.log('Applied Persis foothill entry, elongated corridor and irregular royal plain.')
+
 // Node all coast/campaign junctions, including virtual copies of the unchanged
 // core polygons, so adjoining states reference precisely the same edge chain.
 const meshes={...Object.fromEntries(Object.entries(core).map(([id,multi])=>[id,clean(multi)])),...districts}
@@ -206,9 +272,9 @@ for(const [id,multi] of Object.entries(meshes))indexed[id]=multi.map(poly=>poly.
   const b=ring[(i+1)%ring.length],dx=b[0]-a[0],dy=b[1]-a[1],len2=dx*dx+dy*dy,candidates=[]
   for(let x=Math.floor(Math.min(a[0],b[0])/cellSize);x<=Math.floor(Math.max(a[0],b[0])/cellSize);x++)
     for(let y=Math.floor(Math.min(a[1],b[1])/cellSize);y<=Math.floor(Math.max(a[1],b[1])/cellSize);y++)candidates.push(...(grid.get(`${x}:${y}`)??[]))
-  return candidates.map(p=>({p,t:((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len2}))
-    .filter(({p,t})=>t>=-1e-9&&t<1-1e-8&&Math.abs(dx*(p[1]-a[1])-dy*(p[0]-a[0]))<1e-5)
-    .sort((a,b)=>a.t-b.t).map(({p})=>index(p))
+  return [index(a),...candidates.map(p=>({p,t:((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len2}))
+    .filter(({p,t})=>t>1e-8&&t<1-1e-8&&key(p)!==key(a)&&key(p)!==key(b)&&Math.abs(dx*(p[1]-a[1])-dy*(p[0]-a[0]))<1e-5)
+    .sort((a,b)=>a.t-b.t).map(({p})=>index(p))]
 })))
 // Rounding the two source coast resolutions can leave an out-and-back spur in
 // a microscopic coastal wedge. Remove zero-area backtracking, never territory.
@@ -285,4 +351,4 @@ for(const [name,value] of Object.entries(output)){
   text+=`export const ${name}: ${type} = ${JSON.stringify(value)}\n`
 }
 fs.writeFileSync(new URL('../src/game/theatreGeometry.ts',import.meta.url),text)
-console.log(`Generated ${theatreStates.length} states / ${theatreProvinces.length} provinces; ${used.length} referenced vertices, ${finalGuides.length} surviving terrain guides. Existing 48 states unchanged.`)
+console.log(`Generated ${theatreStates.length} states / ${theatreProvinces.length} provinces; ${used.length} referenced vertices, ${finalGuides.length} surviving terrain guides. Core states share the same noded seams.`)

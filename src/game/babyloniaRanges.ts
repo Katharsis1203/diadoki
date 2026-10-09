@@ -1,4 +1,4 @@
-import { project } from './data.ts'
+import { project } from './geographicProjection.ts'
 import type { LonLat } from './geographyContent.ts'
 
 // Authored ridge sections follow the eastern uplands. Breaks leave valley/pass

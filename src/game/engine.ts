@@ -1,3 +1,5 @@
+import { travelRegions, stateAnchorRegions } from './mountainGeometry.ts'
+import { canTravelDirectly } from './mountainTerrain.ts'
 import { createInitialState, factions, stateEvents } from './data.ts'
 import type { BattlePlan, Commander, GameState, Province, TerritoryState } from './data.ts'
 import { provinceBorderPath } from './geography.ts'
@@ -35,15 +37,17 @@ const strength = (c: Commander) => c.attack + c.defense + c.speed + c.leadership
 export function movementPath(s: GameState, targetId: string) {
   const commander = leader(s)
   if (!commander) return null
-  const queue = [[commander.locationStateId]], visited = new Set<string>()
+  const start=stateAnchorRegions[commander.locationStateId],target=stateAnchorRegions[targetId]
+  if(!start||!target)return null
+  const queue = [[start]], visited = new Set<string>()
   while (queue.length) {
     const path = queue.shift()!, id = path.at(-1)!
     if (visited.has(id)) continue
     visited.add(id)
-    const state = s.states.find((p) => p.id === id)
-    if (!state || state.owner !== PLAYER) continue
-    if (id === targetId) return path
-    queue.push(...state.neighbors.filter((n) => !visited.has(n)).map((n) => [...path, n]))
+    const region=travelRegions[id],state=s.states.find(p=>p.id===region.stateId)
+    if(!state||state.owner!==PLAYER)continue
+    if(id===target)return path.map(id=>travelRegions[id].stateId).filter((id,i,ids)=>i===0||id!==ids[i-1])
+    queue.push(...region.neighbors.filter(n=>!visited.has(n)).map(n=>[...path,n]))
   }
   return null
 }
@@ -60,7 +64,7 @@ export function unavailable(s: GameState, action: CampaignAction): string | null
     if (action === 'move') {
       if (!leader(s) || leader(s)!.troops === 0) return 'Select a commander with troops.'
       if (leader(s)!.locationStateId === p.id) return 'Your commander is already here.'
-      if (!movementPath(s, p.id)) return 'Requires a connected route through your states.'
+      if (!movementPath(s, p.id)) return 'Requires a connected route through your states and open mountain passes.'
     } else {
       if (action === 'recruit' && !recruit(s)) return 'No local commanders are available.'
       if (s.treasury < COST[action]) return `Requires ${COST[action]} coin.`
@@ -72,6 +76,7 @@ export function unavailable(s: GameState, action: CampaignAction): string | null
     if (!c || c.troops === 0) return 'Select a commander with troops.'
     const origin = s.states.find((state) => state.id === c.locationStateId)
     if (!origin || origin.owner !== PLAYER || !origin.neighbors.includes(p.id)) return 'Move your commander to a friendly state bordering this target.'
+    if (!canTravelDirectly(origin.id,p.id)) return 'Mountains block this border. Move your commander to an open pass or valley approach.'
   }
   return null
 }
@@ -111,7 +116,7 @@ export function gameReducer(s: GameState, action: Action): GameState {
     const b = s.battle, p = s.states.find((item) => item.id === b.stateId)!
     if (action.plan === 'retreat') return record({ ...s, battle: null }, `Retreated from ${p.name}. The invasion order remains spent; no casualties.`)
     const result = battlePreview(s, action.plan)!
-    const escape = p.neighbors.find((id) => s.states.find((state) => state.id === id)?.owner === p.owner)
+    const escape = p.neighbors.find((id) => canTravelDirectly(p.id,id)&&s.states.find((state) => state.id === id)?.owner === p.owner)
     let next = record({
       ...s, battle: null, treasury: Math.max(0, s.treasury + result.coin - result.eventCoin),
       states: s.states.map((item) => item.id === p.id ? { ...item,

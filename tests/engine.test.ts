@@ -15,19 +15,19 @@ function borderArmy(s: GameState, id: string) {
 }
 const invade = (s: GameState, id: string) => gameReducer(borderArmy(s, id), { type: 'invade' })
 
-test('48 unique states belong to ten connected administrative provinces with valid local references', () => {
+test('50 unique states belong to eleven connected administrative provinces with valid local references', () => {
   const s = createInitialState()
-  assert.equal(s.provinces.length, 10); assert.equal(s.states.length, 48); assert.equal(controlled(s).length, 11)
-  assert.equal(new Set(s.states.map((p) => p.id)).size, 48)
-  assert.equal(new Set(s.states.map((p) => p.owner)).size, 3)
+  assert.equal(s.provinces.length, 11); assert.equal(s.states.length, 50); assert.equal(controlled(s).length, 10)
+  assert.equal(new Set(s.states.map((p) => p.id)).size, 50)
+  assert.equal(new Set(s.states.map((p) => p.owner)).size, 5)
   const membership = s.provinces.flatMap((p) => {
-    assert.ok(p.stateIds.length >= 3 && p.stateIds.length <= 9)
+    assert.ok(p.stateIds.length >= 2 && p.stateIds.length <= 9)
     assert.deepEqual(provinceStates(s, p).map((state) => state.id), p.stateIds)
     assert.ok(p.borderPath.length > 0)
     return p.stateIds
   })
-  assert.equal(membership.length, 48); assert.equal(new Set(membership).size, 48)
-  assert.equal(new Set([...s.commanders, ...s.recruitables].map((c) => c.id)).size, 8)
+  assert.equal(membership.length, 50); assert.equal(new Set(membership).size, 50)
+  assert.equal(new Set([...s.commanders, ...s.recruitables].map((c) => c.id)).size, 7)
   for (const c of [...s.commanders, ...s.recruitables]) {
     assert.ok(s.states.some((p) => p.id === c.homeState))
     assert.ok(s.states.some((p) => p.id === c.locationStateId))
@@ -46,11 +46,11 @@ test('invalid actions and unknown selection never spend orders or treasury', () 
 })
 test('local market construction updates state and province income without changing siblings', () => {
   const s = select(createInitialState(), 'babylon'), province = s.provinces.find((p) => p.id === 'babylonia')!
-  assert.equal(income(s), 98); assert.equal(s.treasury, 220)
+  assert.equal(income(s), 106); assert.equal(s.treasury, 228)
   const next = gameReducer(s, { type: 'develop' })
   assert.equal(next.treasury, s.treasury - 25); assert.equal(next.orders, 2)
   assert.equal(income(next), income(s) + 4); assert.equal(provinceIncome(next, province), provinceIncome(s, province) + 4)
-  assert.deepEqual(next.states.find((p) => p.id === 'ur'), s.states.find((p) => p.id === 'ur'))
+  assert.deepEqual(next.states.find((p) => p.id === 'chaldaea'), s.states.find((p) => p.id === 'chaldaea'))
   const turn = gameReducer(next, { type: 'endTurn' })
   assert.equal(turn.turn, 2); assert.equal(turn.orders, 3); assert.equal(turn.treasury, next.treasury + income(next))
   assert.ok(turn.log.find((l) => l.includes('Ptolemies holds position')))
@@ -78,7 +78,7 @@ test('marching follows friendly state edges and invasions require a local army',
 test('movement cannot cross an enemy-held corridor', () => {
   let s=select(createInitialState(),'susa')
   // Separate the Susian holdings from the lower Mesopotamian network.
-  s={...s,states:s.states.map(p=>['nippur','diyala','ur'].includes(p.id)?{...p,owner:'antigonus'}:p)}
+  s={...s,states:s.states.map(p=>['nippur','diyala','chaldaea'].includes(p.id)?{...p,owner:'antigonus'}:p)}
   assert.equal(movementPath(s,'susa'),null)
   assert.match(unavailable(s,'move')!,/connected route/)
   assert.equal(gameReducer(s,{type:'move'}),s)
@@ -141,17 +141,17 @@ test('local events target one state, resolve once, and their coin is included in
   assert.equal(preview.coin,28); assert.equal(next.treasury,capture.treasury+28)
   assert.deepEqual(next.states.find(p=>p.id==='nippur')!.resolvedEventIds,['nippur-accounts'])
 })
-test('a complete campaign reaches 25 states through marching and adjacent conquest', () => {
+test('a complete campaign reaches 26 states through marching and adjacent conquest', () => {
   let s=gameReducer(select(createInitialState(),'susa'),{type:'recruit'}), captures=0
-  assert.equal(victoryTarget(s),25)
+  assert.equal(victoryTarget(s),26)
   while(phase(s)!=='victory'){
     const candidates=s.states.filter(p=>p.owner!=='babylon'&&p.neighbors.some(id=>movementPath(s,id)))
       .map(p=>invade(s,p.id))
     const next=candidates.find(candidate=>candidate.battle&&battlePreview(candidate,'guard')?.won)
     assert.ok(next,'No reachable winning border invasion')
-    s=gameReducer(next,{type:'resolve',plan:'guard'});assert.ok(++captures<=14)
+    s=gameReducer(next,{type:'resolve',plan:'guard'});assert.ok(++captures<=16)
   }
-  assert.equal(captures,14);assert.equal(controlled(s).length,25)
+  assert.equal(captures,16);assert.equal(controlled(s).length,26)
   assert.equal(gameReducer(s,{type:'endTurn'}),s); assert.equal(gameReducer(s,{type:'move'}),s)
   assert.deepEqual(gameReducer(s,{type:'reset'}),createInitialState())
 })
@@ -166,7 +166,7 @@ test('zero troops cannot invade and loss of all states is defeat', () => {
 
 test('dominions contain their own states and distinguish partial from complete provinces', () => {
   const s=createInitialState(), before=dominionSummary(s,'babylon')
-  assert.deepEqual(before.completeProvinceIds,['babylonia','susiana'])
+  assert.deepEqual(before.completeProvinceIds,['susiana'])
   const conquered=gameReducer(invade(s,'assur'),{type:'resolve',plan:'guard'}), after=dominionSummary(conquered,'babylon')
   assert.ok(after.stateIds.includes('assur'));assert.ok(after.provinceIds.includes('assyria'))
   assert.ok(!after.completeProvinceIds.includes('assyria'));assert.notEqual(after.borderPath,before.borderPath)

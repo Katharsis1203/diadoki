@@ -1,5 +1,7 @@
+import { stateGroundLabel } from './mountainTerrain.ts'
+import { provinceLandLabels } from './mountainGeometry.ts'
+import { project } from './geographicProjection.ts'
 import { provinceBorderPath, stateNeighbors, stateShape } from './geography.ts'
-import { provinceLabels, stateLabels } from './stateGeometry.ts'
 import { provinceDefinitions, settlementDefinitions, stateDefinitions, stateEventDefinitions } from './geographyContent.ts'
 
 export type Faction = { id: string; name: string; color: string; seatSettlementId: string }
@@ -65,38 +67,44 @@ export type GameState = {
   battle: Battle | null
   selectedCommanderId: string
 }
-export type Settlement = { id: string; name: string; stateId: string; x: number; y: number; kind: 'city' | 'port' | 'fort' }
-export const project = ([lon, lat]: readonly [number, number]): [number, number] => [60 + (lon - 29) * 33, 35 + (43 - lat) * 40]
+export type Settlement = { id: string; name: string; stateId: string; x: number; y: number; kind: 'city' | 'port' | 'fort' | 'village' }
+export { project } from './geographicProjection.ts'
 export const stateEvents = stateEventDefinitions
 export const factions: Faction[] = [
   { id: 'babylon', name: 'Seleucids', color: '#ad741b', seatSettlementId: 'babylon-city' },
   { id: 'ptolemy', name: 'Ptolemies', color: '#23758a', seatSettlementId: 'damascus-city' },
   { id: 'antigonus', name: 'Antigonids', color: '#aa463b', seatSettlementId: 'mazaca-city' },
+  { id: 'nicanor', name: 'Nicanor', color: '#78638a', seatSettlementId: 'ecbatana-city' },
+  { id: 'atropatene', name: 'Atropatene', color: '#3f8278', seatSettlementId: 'ganzak-city' },
 ]
 
 // These derived outlines and references never change with gameplay. Compute
 // them once, then copy mutable arrays when starting/resetting a campaign.
 const initialProvinces: Province[] = provinceDefinitions.map(({ id, name, mainSettlementId }) => {
   const stateIds = stateDefinitions.filter(state => state.provinceId === id).map(state => state.id)
-  return { id, name, mainSettlementId, stateIds, borderPath: provinceBorderPath(stateIds), labelX: provinceLabels[id][0], labelY: provinceLabels[id][1] }
+  // A newly authored province can precede the regenerated terrain labels.
+  const [labelX,labelY]=provinceLandLabels[id]??project(settlementDefinitions.find(s=>s.id===mainSettlementId)!.position)
+  return { id, name, mainSettlementId, stateIds, borderPath: provinceBorderPath(stateIds), labelX, labelY }
 })
 const initialDistricts = Object.fromEntries(stateDefinitions.map(state => [state.id, {
   neighbors: stateNeighbors(state.id), shape: stateShape(state.id),
   settlementIds: settlementDefinitions.filter(place => place.stateId === state.id).map(place => place.id),
 }]))
 
+const openingIncome=stateDefinitions.filter(s=>s.owner==='babylon').reduce((sum,s)=>sum+s.income+4*s.development,0)
+
 export const createInitialState = (): GameState => ({
   turn: 1,
-  treasury: 220, // 122 opening coin + 98 opening income across eleven states.
+  treasury: 122+openingIncome, // Opening coin plus the first turn’s income.
   orders: 3,
   log: [
     `You lead the Seleucids from Babylon. ${provinceDefinitions.length} provinces contain ${stateDefinitions.length} states, each with its own borders and garrison.`,
-    `Turn 1: 122 opening coin + 98 income. Control ${Math.floor(stateDefinitions.length / 2) + 1} of ${stateDefinitions.length} states to win. Select a state; zoom in to see districts and cities.`,
+    `Turn 1: 122 opening coin + ${openingIncome} income. Control ${Math.floor(stateDefinitions.length / 2) + 1} of ${stateDefinitions.length} states to win. Select a state; zoom in to see districts and cities.`,
   ],
   provinces: initialProvinces.map(province => ({ ...province, stateIds: [...province.stateIds] })),
   states: stateDefinitions.map((s) => ({
     id: s.id, name: s.name, provinceId: s.provinceId, owner: s.owner, income: s.income, defense: s.defense, terrain: s.terrain, landscape: s.landscape, neighbors: [...initialDistricts[s.id].neighbors], shape: initialDistricts[s.id].shape,
-    labelX: stateLabels[s.id][0], labelY: stateLabels[s.id][1],
+    labelX: stateGroundLabel(s.id)[0], labelY: stateGroundLabel(s.id)[1],
     settlementIds: [...initialDistricts[s.id].settlementIds],
     buildings: { market: s.development, fort: 0 }, garrison: 26, resolvedEventIds: [],
   })),
@@ -109,10 +117,9 @@ export const createInitialState = (): GameState => ({
     { id: 'antigonus', name: 'Antigonus', faction: 'antigonus', specialty: 'Iron shield', attack: 15, defense: 16, speed: 10, leadership: 14, troops: 39, homeState: 'mazaca', locationStateId: 'mazaca' },
     { id: 'mardonius', name: 'Mardonius', faction: 'babylon', specialty: 'Satrap guard', attack: 14, defense: 12, speed: 12, leadership: 13, troops: 40, homeState: 'babylon', locationStateId: 'babylon' },
     { id: 'sarpedon', name: 'Sarpedon', faction: 'babylon', specialty: 'River general', attack: 15, defense: 11, speed: 13, leadership: 12, troops: 38, homeState: 'susa', locationStateId: 'susa' },
-    { id: 'eumenes', name: 'Eumenes', faction: 'antigonus', specialty: 'Independent satrap', attack: 13, defense: 10, speed: 11, leadership: 11, troops: 33, homeState: 'ecbatana', locationStateId: 'ecbatana' },
+    { id: 'nicanor', name: 'Nicanor', faction: 'nicanor', specialty: 'Satrap of Media and Zagros', attack: 16, defense: 12, speed: 12, leadership: 13, troops: 33, homeState: 'ecbatana', locationStateId: 'ecbatana' },
   ],
   recruitables: [
-    { id: 'nicanor', name: 'Nicanor', faction: 'babylon', specialty: 'Recruitable veteran', attack: 16, defense: 12, speed: 12, leadership: 13, troops: 28, homeState: 'babylon', locationStateId: 'babylon' },
     { id: 'cleitus', name: 'Cleitus', faction: 'babylon', specialty: 'City guard', attack: 17, defense: 14, speed: 10, leadership: 15, troops: 32, homeState: 'susa', locationStateId: 'susa' },
     { id: 'sophanes', name: 'Sophanes', faction: 'babylon', specialty: 'Logistics captain', attack: 12, defense: 11, speed: 11, leadership: 18, troops: 25, homeState: 'babylon', locationStateId: 'babylon' },
   ],

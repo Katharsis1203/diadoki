@@ -20,17 +20,17 @@ const regions: Region[] = [
   {id:'babylon-orchards',stateId:'babylon',type:'palm',width:9,points:[[44.05,32.59],[44.48,32.29]],patches:patches([[44.05,32.59],[44.54,32.36],[44.38,32.17]],groveWide)},
   {id:'nippur-fields',stateId:'nippur',type:'fertile',width:22,points:[[45.18,32.38],[45.23,32.13],[45.58,32.0],[46.03,31.83]]},
   {id:'nippur-groves',stateId:'nippur',type:'palm',width:9,points:[[45.42,32.31],[45.61,31.97]],patches:patches([[45.44,32.28],[45.64,32.03]],grove)},
-  {id:'uruk-fields',stateId:'uruk',type:'fertile',width:22,points:[[45.10,31.57],[45.45,31.45],[45.77,31.33],[46.12,31.22]]},
-  {id:'uruk-groves',stateId:'uruk',type:'palm',width:10,points:[[45.30,31.53],[46.05,31.31]],patches:patches([[45.33,31.52],[45.95,31.47],[46.16,31.22]],groveWide)},
+  {id:'uruk-fields',stateId:'nippur',type:'fertile',width:22,points:[[45.10,31.57],[45.45,31.45],[45.77,31.33],[46.12,31.22]]},
+  {id:'uruk-groves',stateId:'nippur',type:'palm',width:10,points:[[45.30,31.53],[46.05,31.31]],patches:patches([[45.33,31.52],[45.95,31.47],[46.16,31.22]],groveWide)},
   {id:'diyala-farms',stateId:'diyala',type:'fertile',width:24,points:[[45.49,34.12],[45.37,33.76],[45.15,33.46],[44.82,33.21]]},
   {id:'diyala-groves',stateId:'diyala',type:'palm',width:10,points:[[45.1,33.61],[45.41,33.4]],patches:patches([[45.10,33.60],[45.55,33.41]],grove)},
   {id:'diyala-foothills',stateId:'diyala',type:'hill',width:15,points:[[45.45,34.30],[45.69,34.15],[46.06,33.87],[46.40,33.57]],patches:patches([[45.47,34.25],[45.87,34.02],[46.36,33.62]],ridges)},
   {id:'chaldaea-dryland',stateId:'chaldaea',type:'desert',width:29,points:[[43.77,31.79],[44.02,31.37],[44.26,30.91],[44.48,30.38]],patches:patches([[43.85,31.54],[44.04,31.05],[44.33,30.66],[44.56,30.17]],dunes)},
   {id:'chaldaea-steppe',stateId:'chaldaea',type:'steppe',width:16,points:westernDryMargin.filter(([lon,lat])=>lon>43.8&&lat>30.1),patches:patches([[44.39,31.09],[44.70,30.67]],dunes)},
   {id:'nippur-reedbeds',stateId:'nippur',type:'marsh',width:22,points:[[46.3,31.90],[46.65,31.64],[46.95,31.29]],patches:patches([[46.35,31.90],[46.81,31.60],[47.0,31.22]],reeds)},
-  {id:'uruk-reedbeds',stateId:'uruk',type:'marsh',width:18,points:[[46.0,31.28],[46.32,31.2],[46.63,31.06]],patches:patches([[46.37,31.26],[46.62,31.07]],reeds)},
-  {id:'ur-marshes',stateId:'ur',type:'marsh',width:25,points:[[46.38,30.85],[46.8,30.73],[47.15,30.51]],patches:patches([[46.42,30.78],[46.84,30.59],[47.22,30.45]],reeds)},
-  {id:'ur-dry-margin',stateId:'ur',type:'steppe',width:24,points:[[45.72,30.25],[46.14,30.13],[46.62,29.94]],patches:patches([[45.64,30.17],[46.13,29.93],[46.61,29.74]],dunes)},
+  {id:'uruk-reedbeds',stateId:'nippur',type:'marsh',width:18,points:[[46.0,31.28],[46.32,31.2],[46.63,31.06]],patches:patches([[46.37,31.26],[46.62,31.07]],reeds)},
+  {id:'ur-marshes',stateId:'chaldaea',type:'marsh',width:25,points:[[46.38,30.85],[46.8,30.73],[47.15,30.51]],patches:patches([[46.42,30.78],[46.84,30.59],[47.22,30.45]],reeds)},
+  {id:'ur-dry-margin',stateId:'chaldaea',type:'steppe',width:24,points:[[45.72,30.25],[46.14,30.13],[46.62,29.94]],patches:patches([[45.64,30.17],[46.13,29.93],[46.61,29.74]],dunes)},
 ]
 
 export const babyloniaTerrainFeatures: TerrainFeature[] = regions.flatMap(region => (['macro','regional','local'] as const).map(detail => {
@@ -43,7 +43,7 @@ export const babyloniaTerrainFeatures: TerrainFeature[] = regions.flatMap(region
 const canal = (id:string,name:string,points:LonLat[],detail:'regional'|'local'='regional'):TerrainFeature => ({
   id,name,type:'river',detail,points,width:.45,scale:1,rotation:0,opacity:.48,zoomVisibility:[1.1,7],provinceId:'babylonia',
 })
-// Schematic canal districts are explicitly authored with the political cuts.
+// Schematic irrigation channels remain independent of the river-led state cuts.
 // They illustrate the irrigated landscape; no ancient course is asserted.
 export const babyloniaWaterways: TerrainFeature[] = [
   canal('sippar-district-canal','Sippar canal district',sipparCanalMargin.filter(([lon])=>lon>43.6)),

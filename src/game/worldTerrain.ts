@@ -1,3 +1,4 @@
+import { persisNorthernRidges } from './persisGeography.ts'
 import { MAP_EXTENT } from './mapExtent.ts'
 import { project } from './data.ts'
 import type { LonLat } from './geographyContent.ts'
@@ -115,4 +116,5 @@ export const worldRidgeSections:readonly RidgeSection[]=[
   {id:'aravalli',name:'Aravalli Range',system:'aravalli',axis:[[73.0,24.7],[73.7,25.4],[74.4,26.1],[75.1,26.8],[75.8,27.5]],width:19,scale:.54},
   {id:'vindhya-west',name:'Western Vindhya',system:'vindhya',axis:[[75.0,23.3],[76.0,23.6],[77.0,23.75],[78.0,23.8]],width:18,scale:.51},
   {id:'vindhya-east',name:'Eastern Vindhya margin',system:'vindhya',axis:[[78.7,24.0],[79.7,24.2],[80.7,24.3],[81.7,24.5]],width:18,scale:.51},
+  ...persisNorthernRidges,
 ]

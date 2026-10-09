@@ -19,8 +19,8 @@ test('the political atlas covers every province and state with a known ruler and
   for(const s of atlasStates)assert.ok(mapFactionById.has(s.owner),s.id)
   for(const f of mapFactions)assert.equal(all.get(f.seatStateId)?.owner,f.id,`${f.name}: seat must exist and belong to faction`)
 })
-test('independent eastern satraps each hold one or two complete provinces',()=>{
-  const satraps=mapFactions.filter(f=>f.kind==='satrap')
+test('independent atlas satraps each hold one or two complete provinces',()=>{
+  const satraps=mapFactions.filter(f=>f.kind==='satrap'&&f.id!=='nicanor')
   assert.equal(satraps.length,9)
   for(const f of satraps){
     const provinces=theatreProvinces.filter(p=>provinceOwners[p.id]===f.id)

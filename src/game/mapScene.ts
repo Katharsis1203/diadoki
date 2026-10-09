@@ -1,3 +1,4 @@
+import { mountainRegions } from './mountainPasses.ts'
 import { DEFAULT_MAP_SETTINGS } from './mapSettings.ts'
 import type { MapSettings } from './mapSettings.ts'
 import type { GameState } from './data.ts'
@@ -14,8 +15,8 @@ import type { MapLabel, MapLevel } from './mapView.ts'
 // candidates, ground anchors and collision obstacles stable between pans.
 type SceneState = Pick<GameState, 'states' | 'provinces' | 'settlements' | 'commanders' | 'selectedStateId' | 'selectedCommanderId'>
 export function prepareMapScene(game: SceneState, projection: MapProjection, zoom: number, scale: number, level: MapLevel, perspective: boolean, politicalAtlas = false,settings:MapSettings=DEFAULT_MAP_SETTINGS,preparedObjects?:SceneryObject[]) {
-  const objects = preparedObjects ?? (perspective ? sceneryObjects(projection,zoom,scale,level,game.states,settings) : [])
-  const simpleCentres=!settings.settlements?sceneryObjects(projection,zoom,scale,level,game.states,{...settings,settlements:true,mountains:false,vegetation:false}).map(o=>({...o,size:0,box:{left:o.x-3/scale,right:o.x+3/scale,top:o.y-3/scale,bottom:o.y+3/scale}})):[]
+  const objects = preparedObjects ?? (perspective ? sceneryObjects(projection,zoom,scale,level,game.states,settings,politicalAtlas) : [])
+  const simpleCentres=!settings.settlements?sceneryObjects(projection,zoom,scale,level,game.states,{...settings,settlements:true,mountains:false,vegetation:false},politicalAtlas).map(o=>({...o,size:0,box:{left:o.x-3/scale,right:o.x+3/scale,top:o.y-3/scale,bottom:o.y+3/scale}})):[]
   const centreObjects=[...objects.filter(o=>o.placement.asset==='settlement'),...simpleCentres]
   const centres = new Map(centreObjects.flatMap(o=>o.placement.asset==='settlement'?[[o.placement.stateId,{object:o,name:o.placement.name,isCapital:o.placement.isCapital}] as const]:[]))
   const illustratedSeats = new Set(centreObjects.filter(o=>o.placement.asset==='settlement').map(o=>o.placement.settlementId))
@@ -59,6 +60,10 @@ export function prepareMapScene(game: SceneState, projection: MapProjection, zoo
     const [x,y]=projection.point([p.x,p.y])
     return {id:p.id,text:p.name,x,y:y+13/scale,size:11,priority:provinceSeatIds.has(p.id)?9:p.stateId===state?.id?5:1,kind:'city' as const}
   })]:[]
+  if(settings.labels&&politicalAtlas&&level!=='dominion')for(const region of mountainRegions){
+    const [x,y]=projection.point(region.label)
+    labels.push({id:region.id,text:`${region.name}\nImpassable`,x,y,size:15,priority:3,kind:'terrain'})
+  }
   if(settings.labels&&level==='dominion')seats.forEach(({settlement:p})=>{
     const [x,y]=projection.point([p.x,p.y])
     dominionLabels.push({id:p.id,text:p.name,x,y:y+30/scale,size:12,priority:5,kind:'city'})

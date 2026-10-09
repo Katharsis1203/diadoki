@@ -26,6 +26,8 @@ export const mapFactions:readonly MapFaction[] = [
   ruler('nabataea','Nabataeans','#997446','petra'),
   ruler('maurya','Mauryas','#a36930','pataliputra'),
   ruler('rajasthan','Rajasthan Chiefs','#8a7950','aravalli-district'),
+  ruler('nicanor','Nicanor','#78638a','ecbatana','satrap'),
+  ruler('atropatene','Atropatene','#3f8278','ganzak'),
   ruler('parthian-satrap','Parthian Satrap','#55784a','hecatompylos','satrap'),
   ruler('persian-satrap','Persian Satrap','#8c5472','persepolis','satrap'),
   ruler('carmanian-satrap','Carmanian Satrap','#438b8a','karmana','satrap'),

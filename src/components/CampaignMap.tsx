@@ -25,12 +25,12 @@ import { sceneryObjects } from '../game/babyloniaScenery'
 import { prepareMapScene } from '../game/mapScene'
 import { boundsIntersect, mapViewport } from '../game/mapViewport'
 import type { Camera, MapLevel } from '../game/mapView'
-import { PAN_OVERSCAN, panSceneCamera, panTranslation } from '../game/mapPan'
+import { panOverscan, panSceneCamera, panTranslation } from '../game/mapPan'
 import { TerrainLayer } from './TerrainLayer'
 import { BabyloniaScenery } from './BabyloniaScenery'
 import { BabyloniaSurface } from './BabyloniaSurface'
 import { CoreTerrainGround, OverviewRanges } from './CoreTerrain'
-import { ContextLand, MapBorders, OwnershipLayer, PhysicalFeatures, StateTerritories, StaticMapDefinitions, WaterLabels } from './MapLayers'
+import { ContextLand, IndependentMountains, MapBorders, OwnershipLayer, PhysicalFeatures, StateTerritories, StaticMapDefinitions, WaterLabels } from './MapLayers'
 
 type Props = {
   game: GameState
@@ -61,12 +61,25 @@ export function CampaignMap(props:Props){
     return ()=>observer.disconnect()
   },[])
   const scale=Math.min(size.width/MAP_WIDTH,size.height/MAP_HEIGHT)*props.camera.zoom
-  const overscan=props.panning?Math.min(PAN_OVERSCAN,Math.floor(Math.min(size.width,size.height)/4)):0
+  const ratio=window.devicePixelRatio
+  const overscan=panOverscan(size,ratio)
   const [retained,setRetained]=useState(props.camera)
-  const camera=panSceneCamera(retained,props.camera,props.panning,scale,overscan)
+  const camera=panSceneCamera(retained,props.camera,scale,overscan)
   if(camera!==retained)setRetained(camera)
   const shift=panTranslation(camera,props.camera,scale)
   const renderSize=useMemo(()=>({width:size.width+2*overscan,height:size.height+2*overscan}),[size.width,size.height,overscan])
+  // Chromium can retain the original SVG raster resolution under will-change,
+  // even after viewBox zoom changes. Let the new scale paint without promotion
+  // before caching it again. Translation-only frames keep the same surface.
+  const rasterKey=`${scale}:${ratio}:${renderSize.width}:${renderSize.height}`
+  const [raster,setRaster]=useState(()=>({key:rasterKey,ready:false}))
+  if(raster.key!==rasterKey)setRaster({key:rasterKey,ready:false})
+  const promoted=raster.key===rasterKey&&raster.ready
+  useLayoutEffect(()=>{
+    let second=0
+    const first=requestAnimationFrame(()=>{second=requestAnimationFrame(()=>setRaster({key:rasterKey,ready:true}))})
+    return ()=>{cancelAnimationFrame(first);cancelAnimationFrame(second)}
+  },[rasterKey])
   // Event delegates stay stable while App receives the current camera. This
   // lets the large scene skip reconciliation on translation-only frames.
   const latest=useRef(props)
@@ -78,7 +91,7 @@ export function CampaignMap(props:Props){
     onPointerUp:()=>latest.current.onPointerUp(),
   }),[])
   return <div className="map-viewport" ref={viewport}>
-    <div className="map-pan-layer" data-panning={props.panning} style={{transform:props.panning?`translate3d(${shift.x}px,${shift.y}px,0)`:'none'}}>
+    <div className="map-pan-layer" data-panning={props.panning} data-overscan={overscan} data-promoted={promoted} style={{willChange:promoted?'transform':'auto',transform:promoted?`translate3d(${shift.x}px,${shift.y}px,0)`:`translate(${shift.x}px,${shift.y}px)`}}>
       <CampaignMapScene game={props.game} camera={camera} settings={props.settings} level={props.level} terrainLevel={props.terrainLevel}
         onSelect={props.onSelect} selectedDraftId={props.selectedDraftId} onSelectDraft={props.onSelectDraft} onBackground={props.onBackground}
         suppressClick={props.suppressClick} {...handlers} size={renderSize} scale={scale} overscan={overscan}/>
@@ -123,10 +136,10 @@ const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, 
   const cropWidth=cropRight-cropX,cropHeight=cropBottom-cropY
   const [cameraX,cameraY] = projection.point([centreX,centreY])
   const preparedShading=settings.groundShading&&settings.cachedGround&&settings.preparedShading&&new URLSearchParams(window.location.search).get('shading')!=='live'&&new URLSearchParams(window.location.search).get('ground')!=='vector'
-  const prepared=usePreparedGround(view,scale,level,preparedShading)
+  const prepared=usePreparedGround(view,scale,level,preparedShading,overscan)
   const ground=useCachedGround(view,scale,level,settings.cachedGround&&!preparedShading&&new URLSearchParams(window.location.search).get('ground')!=='vector',settings.groundShading)
   const { states, provinces, settlements, commanders, selectedStateId, selectedCommanderId } = game
-  const preparedScenery=useMemo(()=>sceneryObjects(mapProjection(true),zoom,scale,level,states,settings),[states,zoom,scale,level,settings])
+  const preparedScenery=useMemo(()=>sceneryObjects(mapProjection(true),zoom,scale,level,states,settings,theatreEnabled),[states,zoom,scale,level,settings,theatreEnabled])
   const scene = useMemo(() => prepareMapScene({states,provinces,settlements,commanders,selectedStateId,selectedCommanderId}, mapProjection(perspective), zoom, scale, level, perspective, theatreEnabled, settings, preparedScenery),
     [states,provinces,settlements,commanders,selectedStateId,selectedCommanderId,zoom,scale,level,perspective,theatreEnabled,settings,preparedScenery])
   const { objects, simpleCentres, illustratedSeats, state, province, commander, seats, seatIds, provinceSeats, provinceSeatIds, markerAt, labels, localDetails, dominionLabels:coreDominionLabels, obstacles, cityObstacles, ridgeObstacles } = scene
@@ -191,7 +204,7 @@ const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, 
     <rect x={cropX} y={cropY} width={cropWidth} height={cropHeight} className="map-sea" />
     <rect x={cropX} y={cropY} width={cropWidth} height={cropHeight} fill="url(#sea-engraving)" />
     <g className="map-ground" transform={projection.groundTransform}>
-    {prepared.geometry?<PreparedGroundMap prepared={prepared} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level}/>:ground.geometry?<><GroundFallback ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level} shading={settings.groundShading}/>
+    {prepared.geometry?<PreparedGroundMap prepared={prepared} camera={camera} scale={scale} yScale={projection.yScale} size={size}/>:ground.geometry?<><GroundFallback ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level} shading={settings.groundShading}/>
       <CachedGround ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size}/></>:<ContextLand/>}
     {theatreEnabled&&<TheatreTerritories view={view} selectedId={selectedDraftId} battle={!!game.battle} onSelect={onSelectDraft} suppressClick={suppressClick}/>}
     <StateTerritories states={game.states} provinces={game.provinces} selectedId={state?.id} battle={!!game.battle} onSelect={onSelect} suppressClick={suppressClick}/>
@@ -199,19 +212,21 @@ const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, 
     {!ground.geometry&&!preparedShading&&settings.groundShading&&<CoreTerrainGround view={view}/>}
     <BabyloniaSurface shading={settings.groundShading} detailEnabled={settings.groundDetail} level={level} cachedGround={!!ground.geometry||preparedShading}/>
     {settings.ownershipFills&&<OwnershipLayer states={game.states} view={view} atlas={theatreEnabled}/>}
+    <IndependentMountains/>
     {settings.paperGrain&&<rect className="map-paper-grain" x={view.left} y={view.top} width={view.right-view.left} height={view.bottom-view.top} fill="url(#land-grain)" clipPath="url(#physical-land)" pointerEvents="none" aria-hidden="true"/>}
     <PhysicalFeatures shading={settings.groundShading} waterways={settings.waterways} view={view} cachedGround={!!ground.geometry||preparedShading}/>
     </g>
+    {theatreEnabled&&<TheatreBorders view={view} selectedId={selectedDraftId} projection={projection} level={level} provinceBorders={settings.provinceBorders} stateBorders={settings.stateBorders}/>}
+    <MapBorders borders={borders} view={view} states={game.states} state={state} province={province} projection={projection} provinceBorders={settings.provinceBorders} stateBorders={settings.stateBorders} waterways={settings.waterways} dominion={level==='dominion'}/>
     {settings.labels&&settings.waterways&&<WaterLabels projection={projection} perspective={perspective} scale={scale}/>}
     {level==='dominion'&&settings.mountains&&<OverviewRanges projection={projection} view={view}/>}
     <BabyloniaScenery objects={scenery}/>
     <g className="map-primary-centres map-settlements" pointerEvents="none" aria-hidden="true">
       {simpleCentres.filter(o=>o.placement.asset==='settlement'&&!seatIds.has(o.placement.settlementId??'')&&inView(o.x,o.y)).map(o=><circle key={o.placement.id} data-simple-centre={o.placement.id} cx={o.x} cy={o.y} r={2.3/scale}/>)}
     </g>
-    {theatreEnabled&&<TheatreBorders view={view} selectedId={selectedDraftId} projection={projection} level={level} provinceBorders={settings.provinceBorders} stateBorders={settings.stateBorders}/>}
-    <MapBorders borders={borders} view={view} states={game.states} state={state} province={province} projection={projection} provinceBorders={settings.provinceBorders} stateBorders={settings.stateBorders} waterways={settings.waterways} dominion={level==='dominion'}/>
+
     <WorldLabels labels={worldLabels} scale={scale}/>
-    {theatreEnabled&&<TheatreLabels view={view} selectedId={selectedDraftId} projection={projection} scale={scale} labelsEnabled={settings.labels} level={level} obstacles={[...extraLabelObstacles,...worldLabelBoxes]}/>}
+    {theatreEnabled&&<TheatreLabels view={view} selectedId={selectedDraftId} projection={projection} scale={scale} labelsEnabled={settings.labels} centres={[...objects,...simpleCentres]} level={level} obstacles={[...extraLabelObstacles,...worldLabelBoxes]}/>}
     <g className="map-settlements detail-fade" style={{opacity:level==='dominion'?0:1}} aria-hidden="true">{game.settlements.filter(p=>!seatIds.has(p.id)&&!provinceSeatIds.has(p.id)&&!illustratedSeats.has(p.id)&&(level==='state'||p.stateId===state?.id)).map((p) => {
       const [x,y]=projection.point([p.x,p.y])
       return <g key={p.id} data-settlement={p.id} data-state={p.stateId}>

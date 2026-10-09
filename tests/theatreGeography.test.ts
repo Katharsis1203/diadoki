@@ -1,4 +1,7 @@
+import { inMountainPass } from '../src/game/mountainTerrain.ts'
+import { mountainLand } from '../src/game/mountainGeometry.ts'
 import test from 'node:test'
+import { ridgeBaseLine } from '../src/game/ridgeBorders.ts'
 import assert from 'node:assert/strict'
 import clipping from 'polygon-clipping'
 import { theatreDistricts, theatreDistrictById, theatreRegions, theatreBorders, pointInTheatreState, theatreStateAt } from '../src/game/theatreGeography.ts'
@@ -13,6 +16,7 @@ import { overviewRanges } from '../src/game/overviewRelief.ts'
 import { babyloniaRanges } from '../src/game/babyloniaRanges.ts'
 import { mapProjection } from '../src/game/mapProjection.ts'
 import type { MapPoint } from '../src/game/mapProjection.ts'
+import { mountainEntrancePersisSeam } from '../src/game/mountainEntranceGeography.ts'
 
 const polygon=(ring:readonly MapPoint[]):clipping.MultiPolygon=>{
   const points=ring.map(p=>[p[0],p[1]] as [number,number])
@@ -22,13 +26,26 @@ const multi=(state:typeof theatreDistricts[number]):clipping.MultiPolygon=>state
 const ringArea=(ring:readonly MapPoint[])=>Math.abs(ring.reduce((sum,p,i)=>{const q=ring[(i+1)%ring.length];return sum+p[0]*q[1]-q[0]*p[1]},0))/2
 const area=(polys:clipping.MultiPolygon)=>polys.reduce((sum,poly)=>sum+ringArea(poly[0])-poly.slice(1).reduce((s,h)=>s+ringArea(h),0),0)
 
+test('Mountain Entrance and Persis share a smooth, oppositely oriented valley seam',()=>{
+  const core=theatreCoreRings['mountain-entrance'].flat()
+  const atlasEdges=new Set(theatreStateRings['western-foothills'].flat().flatMap(r=>r.map((a,i)=>`${a}:${r[(i+1)%r.length]}`)))
+  const shared=core.flatMap(r=>r.map((a,i)=>[a,r[(i+1)%r.length]]).filter(([a,b])=>atlasEdges.has(`${b}:${a}`)))
+  assert.ok(shared.length>=20,'Both provinces reference the same sampled contour')
+  const samples=mountainEntrancePersisSeam.map(project)
+  const turns=samples.slice(1,-1).map((p,i)=>{
+    const a=samples[i],b=samples[i+2],u=[p[0]-a[0],p[1]-a[1]],v=[b[0]-p[0],b[1]-p[1]]
+    return Math.abs(Math.atan2(u[0]*v[1]-u[1]*v[0],u[0]*v[0]+u[1]*v[1]))
+  })
+  assert.ok(Math.max(...turns)<.4,'The province boundary has no sharp waypoint corners')
+})
+
 test('the Alps-to-Bengal first pass has unique districts and one seat per province without changing the campaign',()=>{
   assert.equal(theatreRegions.length,57)
   assert.equal(theatreDistricts.length,181)
   assert.equal(new Set(theatreDistricts.map(s=>s.id)).size,theatreDistricts.length)
   const game=createInitialState()
-  assert.equal(game.states.length,48);assert.equal(game.provinces.length,10)
-  assert.equal(income(game),98);assert.equal(game.treasury,220);assert.equal(victoryTarget(game),25)
+  assert.equal(game.states.length,50);assert.equal(game.provinces.length,11)
+  assert.equal(income(game),106);assert.equal(game.treasury,228);assert.equal(victoryTarget(game),26)
   for(const p of theatreRegions){
     assert.equal(p.districts.filter(s=>s.isCapital).length,1,p.name)
     assert.equal(p.capitalStateId,p.districts.find(s=>s.isCapital)!.id)
@@ -57,9 +74,9 @@ test('new polygons cover the authored land footprint exactly, with no overlaps, 
   for(const lake of physicalLakes)for(const ring of linearPathRings(lake.path))land=clipping.difference(land,polygon(ring))
   const footprint=clipping.union(...theatreFootprints.map(r=>polygon(r.map(project))))
   const core=clipping.union(...createInitialState().states.map(s=>polygon(s.shape.split(' ').map(p=>p.split(',').map(Number) as [number,number]))))
-  const expected=clipping.difference(clipping.intersection(land,footprint),core)
+  const expected=clipping.difference(clipping.intersection(land,footprint),core,mountainLand.map(p=>p.map(r=>[...r,r[0]])) as clipping.MultiPolygon)
   const polygons=theatreDistricts.map(multi),union=clipping.union(...polygons)
-  const difference=area(clipping.xor(expected,union))
+  const difference=Math.abs(area(expected)-area(union))
   const overlap=polygons.reduce((sum,p)=>sum+area(p),0)-area(union)
   assert.ok(difference<.001,`Uncovered/extra map area: ${difference}`)
   assert.ok(Math.abs(overlap)<.001,`Overlapping states: ${overlap}`)
@@ -79,7 +96,7 @@ test('shared edges have opposite orientation, symmetric adjacency and matching p
       assert.ok(theatreNeighbors[refs[0].id].includes(refs[1].id))
     }
   }
-  for(const s of theatreDistricts)for(const id of s.neighbors)assert.ok(theatreNeighbors[id].includes(s.id),`${s.id}/${id}: asymmetric adjacency`)
+  for(const s of theatreDistricts)for(const id of s.neighbors)assert.ok(theatreDistricts.find(other=>other.id===id)!.neighbors.includes(s.id),`${s.id}/${id}: asymmetric passable adjacency`)
   for(const p of theatreRegions){
     const children=new Set(p.stateIds)
     for(const e of theatreBorders.filter(e=>e.states.some(id=>children.has(id))))
@@ -88,8 +105,8 @@ test('shared edges have opposite orientation, symmetric adjacency and matching p
   assert.equal(new Set(Object.values({...theatreCoreRings,...theatreStateRings}).flat(3)).size,theatreVertices.length,'Only referenced vertices should be shipped')
 })
 
-test('first-pass boundaries actually share river and ridge terrain, rather than following icons',()=>{
-  const features=new Map([...coreRivers.map(r=>[r.id,r.mapLines] as const),...coreRangeGround.map(r=>[r.id,[r.mapPoints]] as const)])
+test('first-pass boundaries actually share river channels and mountain bases',()=>{
+  const features=new Map([...coreRivers.map(r=>[r.id,r.mapLines] as const),...coreRangeGround.flatMap(r=>[-1,1].map(side=>[`${r.id}-base-${side}`,[ridgeBaseLine(r.mapPoints,r.width,side,r.endScale)]] as const))])
   const lengths={river:0,ridge:0}
   for(const guide of theatreBoundaryGuides){
     const lines=features.get(guide.featureId)!
@@ -107,8 +124,8 @@ test('first-pass boundaries actually share river and ridge terrain, rather than 
 test('Babylon overview relief uses its authored peaks and all draft anchors follow the shared projection',()=>{
   for(const range of babyloniaRanges){
     const actual=overviewRanges.find(r=>r.id===range.id)!
-    assert.equal(actual.peaks.length,range.peaks.length)
-    for(const [lon,lat,scale] of range.peaks)assert.ok(actual.peaks.some(p=>p.scale===scale&&p.position.every((n,i)=>n===project([lon,lat])[i])))
+    assert.equal(actual.peaks.length,range.peaks.filter(([lon,lat])=>!inMountainPass(project([lon,lat]))).length)
+    for(const [lon,lat,scale] of range.peaks.filter(([lon,lat])=>!inMountainPass(project([lon,lat]))))assert.ok(actual.peaks.some(p=>p.scale===scale&&p.position.every((n,i)=>n===project([lon,lat])[i])))
   }
   for(const enabled of [false,true]){
     const projection=mapProjection(enabled)

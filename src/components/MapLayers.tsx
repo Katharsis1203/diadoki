@@ -1,3 +1,6 @@
+import { stateLandPaths, mountainLandPath, mountainBorderPath, polygonLandPath } from '../game/mountainTerrain'
+import { mountainPassLines, mountainRegionLand } from '../game/mountainGeometry'
+import { mapBounds } from '../game/worldTerrain'
 import { memo } from 'react'
 import type { RefObject } from 'react'
 import type { GameState, Province, TerritoryState } from '../game/data'
@@ -8,6 +11,7 @@ import { ownerName } from '../game/engine'
 import { mapBorderPaths, stateBounds } from '../game/geography'
 import { physicalGround, physicalLakes as lakes } from '../game/physicalLand'
 import { coreRiverFootprints } from '../game/terrainBackbone'
+import { riverGroundStyle } from '../game/groundBrushes'
 import type { MapProjection } from '../game/mapProjection'
 import { FactionSealSymbols } from './FactionSeals'
 import { TerrainSymbols } from './TerrainLayer'
@@ -24,9 +28,11 @@ export const StaticMapDefinitions = memo(function StaticMapDefinitions({states}:
       <linearGradient id="sea-wash" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="180" y2="700"><stop stopColor="#92bfb8" /><stop offset="1" stopColor="#6ba3ad" /></linearGradient>
       <linearGradient id="land-wash" gradientUnits="userSpaceOnUse" x1="200" y1="80" x2="600" y2="700"><stop stopColor="#e9d8b0" /><stop offset=".55" stopColor="#ddc393"/><stop offset="1" stopColor="#d5b37d" /></linearGradient>
       <pattern id="sea-engraving" width="90" height="42" patternUnits="userSpaceOnUse"><path d="M8 12q12 -4 24 0t24 0M45 33q12 -4 24 0t24 0" fill="none" stroke="#467e90" strokeOpacity=".065" strokeWidth=".6" /></pattern>
+      <pattern id="highland-stipple" width="18" height="16" patternUnits="userSpaceOnUse"><path d="M2 4h2m6 7h2m3-9h1" stroke="#6e634e" strokeOpacity=".14" strokeWidth=".7"/></pattern>
+      <clipPath id="mountain-border-clip"><path d={`M${mapBounds.left-20},${mapBounds.top-20}H${mapBounds.right+20}V${mapBounds.bottom+20}H${mapBounds.left-20}Z${mountainBorderPath}`} clipRule="evenodd"/></clipPath>
       <FactionSealSymbols /><TerrainSymbols /><ScenerySymbols /><SurfaceSymbols />
       {atlasStates.map(p=><clipPath key={p.id} id={`state-clip-${p.id}`}><path d={p.path} clipRule="evenodd"/></clipPath>)}
-      {states.map((p) => <clipPath key={p.id} id={`state-clip-${p.id}`}><polygon points={p.shape} /></clipPath>)}
+      {states.map((p) => <clipPath key={p.id} id={`state-clip-${p.id}`}><path d={stateLandPaths[p.id]} clipRule="evenodd"/></clipPath>)}
   </>
 })
 
@@ -57,7 +63,7 @@ export const StateTerritories = memo(function StateTerritories({states,provinces
       onClick={(event) => { event.stopPropagation(); if (!suppressClick.current) onSelect(p.id) }}
       onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(p.id) } }}>
       <title>{p.name} · {provinces.find((province) => province.id === p.provinceId)?.name}</title>
-      <polygon className="state-area" points={p.shape} />
+      <path className="state-area" d={stateLandPaths[p.id]} fillRule="evenodd"/>
     </g>)}
   </>
 })
@@ -66,22 +72,24 @@ export const OwnershipLayer = memo(function OwnershipLayer({states,view,atlas=fa
   return (
     <g className="map-ownership" aria-hidden="true" pointerEvents="none">
       {atlas&&atlasStates.filter(s=>boundsIntersect(s.bounds,view)).map(s=><path key={s.id} data-atlas-state={s.id} data-owner={s.owner} d={s.path} fillRule="evenodd" fill={mapFactionById.get(s.owner)!.color}/>)}
-      {states.filter(s=>boundsIntersect(stateBounds(s.id),view)).map(p=><polygon key={p.id} data-owner={p.owner} data-state={p.id} points={p.shape} fill={factions.find(f=>f.id===p.owner)?.color}/>) }
+      {states.filter(s=>boundsIntersect(stateBounds(s.id),view)).map(p=><path key={p.id} data-owner={p.owner} data-state={p.id} d={stateLandPaths[p.id]} fillRule="evenodd" fill={factions.find(f=>f.id===p.owner)?.color}/>) }
     </g>
   )
 })
 
-const riverArtwork=coreRiverFootprints.map(({river:r,bounds})=>({id:r.id,name:r.name,bounds,
-  fertility:<g className="river-fertility-ground">{r.source==='existing'?<path className="river-fertility" d={r.path}/>:<>
-    <path d={r.path} fill="none" stroke="#638553" strokeWidth="9" strokeOpacity=".055" strokeLinejoin="round"/>
-    <path d={r.path} fill="none" stroke="#638553" strokeWidth="4.5" strokeOpacity=".075" strokeLinejoin="round"/>
-  </>}</g>,
+const riverArtwork=coreRiverFootprints.map(({river:r,bounds})=>{
+  const style=riverGroundStyle(r)
+  return {id:r.id,name:r.name,bounds,
+  fertility:<g className="river-fertility-ground" fill="none" stroke={style.color} strokeLinejoin="round" strokeLinecap="round">
+    <path d={r.path} strokeWidth={style.width} strokeOpacity={style.opacity} filter={style.blur?'url(#river-wash-soften)':undefined}/>
+    {!!style.innerWidth&&<path d={r.path} strokeWidth={style.innerWidth} strokeOpacity={style.innerOpacity} filter={style.blur?'url(#river-wash-soften)':undefined}/>}
+  </g>,
   water:<><path className="river-bank-light" d={r.path} style={{strokeWidth:r.width+.55}}/>
     <path className="map-river" d={r.path} style={{strokeWidth:r.width}}/></>,
-}))
+}})
 export const PhysicalFeatures = memo(function PhysicalFeatures({view,cachedGround=false,groundOnly=false,shading=true,waterways=true}:{view:LabelBox;cachedGround?:boolean;groundOnly?:boolean;shading?:boolean;waterways?:boolean}) {
   return <g className={`map-physical-features${cachedGround?' ground-fertility-cached':''}`} aria-hidden="true" pointerEvents="none" clipPath="url(#physical-land)">
-    {riverArtwork.filter(r=>boundsIntersect({left:r.bounds.left-9,right:r.bounds.right+9,top:r.bounds.top-9,bottom:r.bounds.bottom+9},view)).map(r=><g key={r.id} data-river={r.id}>
+    {riverArtwork.filter(r=>boundsIntersect({left:r.bounds.left-16,right:r.bounds.right+16,top:r.bounds.top-16,bottom:r.bounds.bottom+16},view)).map(r=><g key={r.id} data-river={r.id}>
       <title>{r.name}</title>{shading&&!cachedGround&&r.fertility}{!groundOnly&&waterways&&r.water}
     </g>)}
     {!groundOnly&&waterways&&lakes.map(lake=><path key={lake.name} className="map-lake" d={lake.path}/>)}
@@ -117,20 +125,28 @@ type BorderProps = {
   stateBorders?:boolean
   waterways?:boolean
 }
-export const MapBorders = memo(function MapBorders({borders,view,states,state,province,projection,dominion,provinceBorders=true,stateBorders=true,waterways=true}:BorderProps) {
+export const MapBorders = memo(function MapBorders({borders,view,state,province,projection,dominion,provinceBorders=true,stateBorders=true,waterways=true}:BorderProps) {
   const outlines=borders.dominions.filter(d=>d.path&&(!d.bounds||boundsIntersect(d.bounds,view)))
   const frontier=borders.frontierEdges?borders.frontierEdges.filter(e=>boundsIntersect(e.bounds,view)).map(e=>e.path).join(''):borders.frontiers
   return (
     <g transform={projection.groundTransform}>
-    <g className="map-borders" aria-hidden="true">
+    <g className="map-borders" clipPath="url(#mountain-border-clip)" aria-hidden="true">
       {provinceBorders&&<path className="province-division" d={borders.provinces} />}
       {stateBorders&&!dominion&&<path className="state-division" d={borders.divisions}/> }
       <g mask={waterways?"url(#water-border-mask)":undefined}>{outlines.map((dominion) => <path key={dominion.id} className="dominion-border" data-state={dominion.id} d={dominion.path} stroke={mapFactionById.get(dominion.owner)?.color} clipPath={`url(#state-clip-${dominion.id})`} />)}</g>
       <g>{outlines.map(d=><path key={d.id} className="dominion-edge" d={d.path} stroke={mapFactionById.get(d.owner)?.color} clipPath={`url(#state-clip-${d.id})`}/>)}</g>
       <path className="dominion-ink" d={frontier} />
-      {province && <><g className="province-highlight">{province.stateIds.filter(id=>id!==state?.id).map((id) => <polygon key={id} points={states.find((s)=>s.id===id)!.shape} />)}</g><path className="selected-province-border" data-province={province.id} d={province.borderPath} /></>}
-      {state && <polygon className="state-selection" points={state.shape} />}
+      {province && <><g className="province-highlight">{province.stateIds.filter(id=>id!==state?.id).map((id) => <path key={id} d={stateLandPaths[id]} fillRule="evenodd"/>)}</g><path className="selected-province-border" data-province={province.id} d={province.borderPath} /></>}
+      {state && <path className="state-selection" d={stateLandPaths[state.id]} fillRule="evenodd"/>}
     </g>
     </g>
   )
+})
+
+export const IndependentMountains=memo(function IndependentMountains(){
+  return <g className="independent-mountains" data-independent-terrain="mountains" pointerEvents="none" aria-hidden="true">
+    <path d={mountainLandPath} fill="#8e8168" fillOpacity=".16" fillRule="evenodd"/>
+    {Object.entries(mountainRegionLand).map(([id,land])=><path key={id} data-mountain-region={id} d={polygonLandPath(land)} fill="url(#highland-stipple)" fillRule="evenodd"><title>Northern Highlands — impassable terrain</title></path>)}
+    {mountainPassLines.map(p=><path key={p.id} data-mountain-pass={p.id} d={`M${p.points.map(p=>p.join(',')).join('L')}`} fill="none" stroke="#725334" strokeOpacity=".55" strokeWidth=".65" strokeDasharray="2 2"><title>{p.name}</title></path>)}
+  </g>
 })

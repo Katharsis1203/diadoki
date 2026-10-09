@@ -11,6 +11,65 @@ export function ScenerySymbols() {
   ]
   const hills=['M-23 0Q-17 -19 -6 -20Q6 -22 23 0Z','M-24 0Q-12 -27 1 -18Q11 -13 23 0Z','M-23 0Q-14 -15 -4 -12Q7 -24 23 0Z']
   return <>
+    {[0,1].map(i=><symbol key={`rocks-${i}`} id={`scenery-rocks-${i}`} viewBox="-24 -40 48 40">
+      <path d={i===0?'M-21 0L-18 -5L-11 -7L-5 -3L-6 0ZM-3 0L-1 -8L6 -10L13 -5L12 0ZM14 0L16 -4L20 -5L24 -1V0Z':'M-23 0L-19 -3L-14 -4L-10 0ZM-8 0L-6 -6L1 -9L8 -5L9 0ZM11 0L13 -4L20 -6L23 -2V0Z'} fill="#b9a685" stroke="#817255" strokeWidth=".85" strokeLinejoin="round"/>
+      <path d={i===0?'M-11 -7L-10 -2L-6 0L-5 -3ZM6 -10L5 -3L12 0L13 -5ZM20 -5L19 -1L24 0V-1Z':'M-14 -4L-15 -1L-10 0ZM1 -9L0 -3L9 0L8 -5ZM20 -6L18 -2L23 0V-2Z'} fill="#948367" opacity=".75"/>
+      <path d={i===0?'M-17 -4l5 -2M0 -6l5 -2M16 -2l3 -2':'M-19 -2l4 -1M-5 -4l5 -3M14 -2l4 -3'} fill="none" stroke="#decba5" strokeWidth=".9"/>
+    </symbol>)}
+    {[0,1].map(i=><symbol key={`scrub-${i}`} id={`scenery-scrub-${i}`} viewBox="-24 -40 48 40">
+      <path d={i===0?'M-20 0q6 -3 12 0M-2 0q6 -3 12 0M15 0h7':'M-22 0h7M-11 0q6 -3 12 0M8 0q6 -3 13 0'} stroke="#8e906c" strokeOpacity=".5" strokeWidth="1.5" fill="none"/>
+      <path d={i===0?'M-14 0v-6m0 5l-5 -3m5 3l4 -5M5 0l-1 -8m0 7l-4 -4m4 4l5 -5M18 0l1 -4':'M-18 0l-1 -4M-5 0v-8m0 7l-5 -4m5 4l5 -6M14 0l1 -6m0 5l-4 -3m4 3l5 -4'} stroke="#79815b" strokeWidth="1.1" strokeLinecap="round" fill="none"/>
+      <path d="M-20 2h4m18 0h3m11 -1h5" stroke="#a58c60" strokeWidth=".7" fill="none"/>
+    </symbol>)}
+    <symbol id="scenery-persian-city" viewBox="-24 -40 48 40">
+      {/* Surviving stone terrace and roofless columns beside the smaller town. */}
+      <path d="M-23 0V-6H7V0Z" fill="#bfa77a" stroke="#796b50" strokeWidth=".8"/>
+      <path d="M-23 -6L-19 -10H6L7 -6Z" fill="#e1cfaa" stroke="#8b7b5c" strokeWidth=".7"/>
+      <path d="M-20 -10V-24h3v14m4 0V-25h3v15m4 0V-23h3v13m4 0V-18h3v8" fill="#d7c5a0" stroke="#887b60" strokeWidth=".65"/>
+      <path d="M-21 -24h5m2 -1h5m2 2h5m2 5h5" fill="none" stroke="#a89470" strokeWidth="1.5"/>
+      <path d="M-21 -23v12m7 -13v13m7 -11v11m7 -6v6" stroke="#f0e0bd" strokeWidth=".9"/>
+      <path d="M-5 0V-7H2V-10H10V-5H17V0Z" fill="#c6aa79" stroke="#7c6848" strokeWidth=".8"/>
+      <path d="M2 -9H10M10 -4h7M-4 -6H1" stroke="#eddbb5" strokeWidth="1.1"/>
+      <path d="M5 0V-5H8V0m5 0V-3h2V0" fill="#807053"/>
+      <path d="M-16 0v-2h7v-2h7" fill="none" stroke="#e4d3ae" strokeWidth=".85"/>
+    </symbol>
+    <symbol id="scenery-pasargadan-village" viewBox="-24 -40 48 40">
+      <path d="M-4 0V-3H-1V-6H2V-9H5V-13H14V-9H18V-6H21V-3H24V0Z" fill="#d7c3a0" stroke="#857557" strokeWidth=".7"/>
+      <path d="M5 -13L9.5 -18L14 -13Z" fill="#ead8b5" stroke="#857557" strokeWidth=".7"/>
+      <path d="M10 -12h4v3h4v3h3v3h3v3H14V-9H10Z" fill="#ad9875"/>
+      <path d="M7 -9v-3h3v3" fill="#756950"/>
+      <path d="M-17 0V-6H-9V-9H-3V-4H1V0Z" fill="#c8a77b" stroke="#7b674b" strokeWidth=".8"/>
+      <path d="M-16 -5h7m0 -3h5" stroke="#e9d2a9" strokeWidth="1"/>
+      <path d="M-13 0v-3h3v3" fill="#786247"/>
+    </symbol>
+    <symbol id="scenery-assyrian-city" viewBox="-24 -40 48 40">
+      <path d="M-21 0V-12H-13V-19H-6V-28H10V-19H17V-12H22V0Z" fill="#c5ad85" stroke="#66513b" strokeWidth=".9"/>
+      <path d="M5 -27H10V-19H17V-12H22V0H10V-11H5Z" fill="#947956"/>
+      <path d="M-24 0V-17H-21V-20H-17V-17H-13V-20H-9V-12H9V-20H13V-17H17V-20H21V-17H24V0Z" fill="#bfa078" stroke="#654d34" strokeWidth=".9"/>
+      <path d="M-24 -17H-20V0H-24M9 -17H12V0H9" fill="#e5ceaa"/>
+      <path d="M20 -17H24V0H20" fill="#937552"/>
+      <path d="M-5 0V-8Q0 -14 5 -8V0" fill="#584734"/>
+      <path d="M-8 -11H8M-23 -9H-10M11 -9H23M-5 -25H9M-10 -18H4" stroke="#e8d2ac" strokeWidth="1" fill="none"/>
+      <path d="M-17 -14v4M16 -14v4" stroke="#766043" strokeWidth="1.2"/>
+    </symbol>
+    {[0,1].map(i=><symbol key={`grove-${i}`} id={`scenery-grove-${i}`} viewBox="-24 -40 48 40">
+      <path d="M-11 0V-15M5 0V-22M17 0V-12" stroke="#79603f" strokeWidth="1.8"/>
+      <path d={i===0?'M-19 -9Q-23 -18 -16 -21Q-9 -27 -4 -19Q1 -11 -8 -8ZM-3 -16Q-9 -25 -2 -29Q5 -35 12 -28Q21 -17 11 -14ZM11 -7Q6 -16 13 -19Q22 -24 25 -15Q28 -7 18 -5Z':'M-21 -7Q-25 -17 -15 -21Q-6 -25 -2 -15Q0 -7 -11 -5ZM-3 -17Q-8 -29 2 -31Q11 -34 15 -23Q19 -13 7 -12ZM11 -7Q7 -17 16 -18Q25 -20 25 -11Q26 -5 18 -4Z'} fill="#879063" stroke="#69774e" strokeWidth=".8"/>
+      <path d="M-17 -16q4 -5 8 -2M0 -24q5 -5 10 0M15 -13q4 -3 7 0" stroke="#b0ad7b" strokeWidth="1.1" fill="none"/>
+    </symbol>)}
+    <symbol id="scenery-susian-city" viewBox="-24 -40 48 40">
+      <path d="M-23 0V-7H-18V-12H-9V-17H13V-12H21V0Z" fill="#c5a675" stroke="#6c5438" strokeWidth=".9"/>
+      <path d="M-15 -13V-27H17V-13Z" fill="#dcc398" stroke="#766041" strokeWidth=".8"/>
+      <path d="M-15 -27H17L21 -24H-19Z" fill="#ead4aa" stroke="#6b563b" strokeWidth=".8"/>
+      <path d="M17 -24L21 -24V-12L17 -13Z" fill="#977c54"/>
+      <path d="M-11 -24V-14M-4 -24V-14M3 -24V-14M10 -24V-14" stroke="#876d48" strokeWidth="2.5"/>
+      <path d="M-12 -24V-14M-5 -24V-14M2 -24V-14M9 -24V-14" stroke="#f0dbb5" strokeWidth="1.2"/>
+      <path d="M-17 -13H19M-19 -10H21M-20 -7H22" stroke="#ecd4a7" strokeWidth="1.2"/>
+      <path d="M-23 0V-9H-17V-12H-11V-9H-5V0Z" fill="#b99561" stroke="#6c5438" strokeWidth=".8"/>
+      <path d="M-15 0V-5H-11V0M4 0V-5H8V0" fill="#655039"/>
+      <path d="M10 0V-8H21V0Z" fill="#ac895c" stroke="#705639" strokeWidth=".8"/>
+      <path d="M11 -7H20M-22 -8H-17" stroke="#e6cda1" strokeWidth="1"/>
+    </symbol>
     {mountainPeaks.map(([outline,shade,summit],i)=><symbol key={`mountain-${i}`} id={`scenery-mountain-${i}`} viewBox="-24 -40 48 40">
       <path d={outline} fill="#b49c7b" stroke="#655642" strokeWidth="1.2" strokeLinejoin="round"/>
       <path d={shade} fill="#786654" opacity=".88"/><path d={summit} fill="#e0cfad"/>
@@ -85,7 +144,7 @@ const ScenerySprite = memo(function ScenerySprite({object}:{object:SceneryObject
   return <g data-scenery={p.id} data-asset={p.asset} data-state={p.asset==='settlement'?p.stateId:undefined} data-tier={p.asset==='settlement'?p.tier:undefined} data-capital={p.asset==='settlement'?p.isCapital:undefined} data-range={p.rangeId} data-ground-y={p.position[1]} data-anchor-x={x} data-anchor-y={y} opacity={opacity} transform={`translate(${x} ${y}) scale(${size})`}>
     {p.asset==='settlement'&&<title>{p.name}{p.isCapital?' · province capital':''}</title>}
     <ellipse className="scenery-shadow" cx="4" cy="1.5" rx={p.asset==='settlement'?23:19} ry="3.5"/>
-    <use href={`#scenery-${p.asset==='settlement'?p.tier:p.asset}-${p.asset==='settlement'&&p.tier==='city'?(p.isCapital?0:1+(p.variant??0)%2):p.variant??0}`} x="-24" y="-40" width="48" height="40"/>
+    <use href={p.asset==='settlement'&&p.style&&p.style!=='pasargadan'&&p.tier==='city'?`#scenery-${p.style}-city`:p.asset==='settlement'&&p.style==='pasargadan'&&p.tier==='village'?'#scenery-pasargadan-village':`#scenery-${p.asset==='settlement'?p.tier:p.asset}-${p.asset==='settlement'&&p.tier==='city'?(p.isCapital?0:1+(p.variant??0)%2):p.variant??0}`} x="-24" y="-40" width="48" height="40"/>
   </g>
 })
 

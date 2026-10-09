@@ -1,5 +1,8 @@
 import type { LonLat } from './geographyContent'
 import { babyloniaTerrainFeatures, babyloniaWaterways } from './babyloniaTerrain.ts'
+import { persisTerrainFeatures, persisWaterways, persisHighlandFeatures } from './persisTerrain.ts'
+import { assyriaTerrainFeatures, assyriaWaterways } from './assyriaTerrain.ts'
+import { susaTerrainFeatures, susaWaterways } from './susaTerrain.ts'
 import { rangeGround } from './babyloniaRanges.ts'
 
 export type TerrainDetail = 'macro' | 'regional' | 'local'
@@ -17,6 +20,7 @@ export type TerrainFeature = {
   zoomVisibility: readonly [number, number]
   modifierRef?: string
   provinceId?: string
+  terrainRegionId?: string
   stateId?: string
   marks?: readonly { position: LonLat; size: number; rotation: number }[]
 }
@@ -51,12 +55,12 @@ export const terrainFeatures: TerrainFeature[] = [...regions.flatMap((region) =>
   ...region, id:`${region.id}-${detail}`, detail, scale:region.scale ?? 1, rotation:0,
   opacity: detail==='macro' ? .42 : detail==='regional' ? .6 : .7,
   zoomVisibility: detail==='macro' ? [.65,1.85] as const : detail==='regional' ? [1.1,4.3] as const : [3.2,7] as const,
-}))), ...babyloniaTerrainFeatures, ...rangeGround.map(({id,points})=>({
+}))), ...babyloniaTerrainFeatures, ...susaTerrainFeatures, ...assyriaTerrainFeatures, ...persisTerrainFeatures, ...persisHighlandFeatures, ...rangeGround.map(({id,points})=>({
   id:`eastern-rock-${id}`,name:'Eastern rocky slopes',type:'mountain' as const,detail:'regional' as const,
   points,width:20,scale:1,rotation:0,opacity:.85,zoomVisibility:[.65,7] as const,marks:[],
 }))]
 
 export const routeFeatures: TerrainFeature[] = [
-  ...babyloniaWaterways,
+  ...babyloniaWaterways, ...susaWaterways, ...assyriaWaterways, ...persisWaterways,
   {id:'babylon-canal',name:'Babylon canal',type:'river',detail:'local',points:[[44.34,32.4],[44.75,32.15],[45.23,32.13]],width:.5,scale:1,rotation:0,opacity:.55,zoomVisibility:[3.2,7]},
 ]

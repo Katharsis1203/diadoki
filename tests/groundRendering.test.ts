@@ -130,3 +130,62 @@ test('oversized visible demand falls back rather than exceeding the cache budget
     assert.equal(cache.stats.bytes,0)
   }finally{cache.dispose()}
 })
+
+test('parallel prepared loading respects demand order, pool size and decode reservations',async()=>{
+  const small=(x:number)=>({...tile(x),size:8,resolution:1})
+  const tiles=[0,1,2,3,4].map(small),released:string[]=[],started:string[]=[]
+  const completions=new Map<string,(value:GroundTexture)=>void>()
+  const cache=new GroundTileCache(t=>new Promise(resolve=>{started.push(t.key);completions.set(t.key,resolve)}),8192,3)
+  const bounded=()=>{assert.ok(cache.stats.active<=3);assert.ok(cache.stats.bytes+cache.stats.reservedBytes<=8192)}
+  const unsubscribe=cache.subscribe(bounded)
+  cache.activate();cache.setDemand(tiles)
+  try{
+    await waitUntil(()=>started.length===3)
+    assert.deepEqual(started,tiles.slice(0,3).map(t=>t.key));bounded()
+    assert.equal(cache.stats.reservedBytes,3*1024)
+    completions.get(tiles[1].key)!(texture(tiles[1].key,released,1024))
+    await waitUntil(()=>started.length===4);bounded()
+    for(const t of [tiles[0],tiles[2],tiles[3]])completions.get(t.key)!(texture(t.key,released,1024))
+    await waitUntil(()=>started.length===5)
+    completions.get(tiles[4].key)!(texture(tiles[4].key,released,1024))
+    await waitUntil(()=>cache.ready(tiles));bounded()
+    assert.equal(cache.stats.bytes,5*1024)
+    assert.equal(cache.stats.reservedBytes,0)
+  }finally{unsubscribe();cache.dispose()}
+  assert.equal(released.length,5)
+})
+
+test('obsolete parallel jobs abort and a late rejection cannot poison a replacement of the same key',async()=>{
+  const released:string[]=[],signals:AbortSignal[]=[],rejects:((error:Error)=>void)[]=[],completions:((value:GroundTexture)=>void)[]=[]
+  const cache=new GroundTileCache((_t,signal)=>new Promise((resolve,reject)=>{signals.push(signal!);completions.push(resolve);rejects.push(reject)}))
+  cache.activate();cache.setDemand([tile(0)])
+  try{
+    await waitUntil(()=>signals.length===1)
+    cache.setDemand([]);cache.setDemand([tile(0)])
+    assert.equal(signals[0].aborted,true)
+    rejects[0](new Error('obsolete download rejected late'))
+    await waitUntil(()=>signals.length===2)
+    assert.equal(cache.stats.failed,0)
+    completions[1](texture('replacement',released))
+    await waitUntil(()=>cache.ready([tile(0)]))
+    assert.equal(cache.texture(tile(0).key)?.href,'replacement')
+  }finally{cache.dispose()}
+  assert.deepEqual(released,['replacement'])
+})
+
+test('parallel disposal releases stale textures and retains the pool limit through reactivation',async()=>{
+  const released:string[]=[],completions:((value:GroundTexture)=>void)[]=[],signals:AbortSignal[]=[]
+  const cache=new GroundTileCache((_t,signal)=>new Promise(resolve=>{signals.push(signal!);completions.push(resolve)}),GROUND_CACHE_BYTES,3)
+  cache.activate();cache.setDemand([tile(0),tile(1),tile(2)])
+  await waitUntil(()=>completions.length===3)
+  cache.dispose();assert.ok(signals.every(s=>s.aborted))
+  cache.activate();cache.setDemand([tile(3)])
+  completions[0](texture('stale-0',released));completions[1](texture('stale-1',released));completions[2](texture('stale-2',released))
+  try{
+    await waitUntil(()=>completions.length===4)
+    assert.equal(cache.stats.bytes,0)
+    assert.ok(cache.stats.active<=3)
+    completions[3](texture('new',released));await waitUntil(()=>cache.ready([tile(3)]))
+  }finally{cache.dispose()}
+  assert.deepEqual(released,['stale-0','stale-1','stale-2','new'])
+})

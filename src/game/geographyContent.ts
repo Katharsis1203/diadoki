@@ -1,6 +1,9 @@
 // Authored geographic content. Names, ownership and district centres live here,
 // independently of the renderer. Districts are approximate campaign regions.
 import { babyloniaStateNotes } from './babyloniaGeography.ts'
+import { assyriaAdditionalSettlements, assyriaStateNotes } from './assyriaGeography.ts'
+import { susianaStateSettlements, susaStateNotes } from './susaGeography.ts'
+import { mediaStateNotes } from './mediaGeography.ts'
 export type LonLat = readonly [number, number]
 export type StateDefinition = {
   id: string
@@ -15,13 +18,13 @@ export type StateDefinition = {
   landscape?: string
   terrain: 'plain' | 'coast' | 'highland' | 'river' | 'desert' | 'marsh'
 }
-export type SettlementDefinition = { id: string; name: string; stateId: string; position: LonLat; kind: 'city' | 'port' | 'fort' }
+export type SettlementDefinition = { id: string; name: string; stateId: string; position: LonLat; kind: 'city' | 'port' | 'fort' | 'village' }
 export const provinceDefinitions = [
   { id: 'pontus', name: 'Pontus', mainSettlementId: 'amasia-city' }, { id: 'cappadocia', name: 'Cappadocia', mainSettlementId: 'mazaca-city' },
   { id: 'cilicia', name: 'Cilicia', mainSettlementId: 'tarsus-city' }, { id: 'phoenicia', name: 'Phoenicia', mainSettlementId: 'tyre-port' },
   { id: 'syria', name: 'Syria', mainSettlementId: 'damascus-city' }, { id: 'assyria', name: 'Assyria', mainSettlementId: 'nineveh-city' },
   { id: 'babylonia', name: 'Babylonia', mainSettlementId: 'babylon-city' }, { id: 'susiana', name: 'Susiana', mainSettlementId: 'susa-city' },
-  { id: 'media', name: 'Media', mainSettlementId: 'ecbatana-city' }, { id: 'armenia', name: 'Armenia', mainSettlementId: 'tushpa-city' },
+  { id: 'media', name: 'Media', mainSettlementId: 'ecbatana-city' }, { id: 'atropatene', name: 'Atropatene', mainSettlementId: 'ganzak-city' }, { id: 'armenia', name: 'Armenia', mainSettlementId: 'tushpa-city' },
 ]
 
 type District = [id: string, name: string, center: LonLat, income: number, development: number, defense: number, terrain: StateDefinition['terrain']]
@@ -65,22 +68,26 @@ const districts: [provinceId: string, owner: string, states: District[]][] = [
   ['babylonia','babylon',[
     ['sippar','Sippar',[44.26,33.06],6,1,10,'river'],
     ['babylon','Babylon',[44.25,32.5],13,2,15,'river'],
-    ['chaldaea','Chaldaea',[43.95,31.1],2,0,9,'desert'],
+    ['chaldaea','Chaldaea',[43.95,31.1],11,0,9,'plain'],
     ['nippur','Nippur',[45.5,32.3],6,0,10,'plain'],
-    ['uruk','Uruk',[45.64,31.32],5,0,10,'river'],
     ['diyala','Diyala',[45.2,33.5],2,0,10,'river'],
-    ['ur','Ur',[46.1,30.96],4,0,9,'marsh'],
+    ['zagros','Zagros',[46.2,34.8],6,0,12,'highland'],
   ]],
   ['susiana','babylon',[
-    ['susa','Susa',[48.25,32.19],12,1,12,'plain'],
-    ['karun','Karun',[48.7,31.3],10,0,9,'river'],
-    ['elymais','Elymais',[49.3,31.8],10,1,11,'highland'],
-    ['cossaea','Cossaea',[48.2,33.1],8,0,11,'highland'],
+    ['susa','Susa',[48.25,32.19],20,1,12,'plain'],
+    ['karun','Karun',[48.15,31.15],10,0,9,'river'],
+    ['elymais','Elymais',[49.50,31.02],10,1,11,'highland'],
+    ['mountain-entrance','Mountain Entrance',[49.95,32.65],4,0,10,'highland'],
+    ['western-valley','Western Valley',[48.15,33.85],4,0,10,'highland'],
   ]],
-  ['media','antigonus',[
+  ['atropatene','atropatene',[
     ['atropatene','Atropatene',[46.1,37.8],7,0,11,'highland'],
     ['ganzak','Ganzak',[46.5,36.7],7,0,10,'highland'],
-    ['zagros','Zagros',[46.2,34.8],6,0,12,'highland'],
+    ['northern-atropatene','Northern Uplands',[47.65,38.20],5,0,10,'highland'],
+    ['atropatene-river-basin','River Basin',[48.45,36.75],6,0,9,'river'],
+    ['atropatene-coast','Caspian Coast',[48.65,37.55],6,0,9,'coast'],
+  ]],
+  ['media','nicanor',[
     ['nisaea','Nisaean Plain',[47.6,34.5],7,0,9,'plain'],
     ['ecbatana','Ecbatana',[48.52,34.8],10,1,11,'highland'],
     ['rhagae','Rhagae',[51.44,35.6],9,0,10,'plain'],
@@ -97,7 +104,7 @@ const districts: [provinceId: string, owner: string, states: District[]][] = [
 ]
 // Difficult capital districts can override the automatically computed interior pole.
 const labelPositions: Record<string,LonLat> = {babylon:[44.3,32.8]}
-export const stateDefinitions: StateDefinition[] = districts.flatMap(([provinceId,owner,states]) => states.map(([id,name,center,income,development,defense,terrain]) => ({ id,name,provinceId,owner,center,income,development,defense,terrain,labelPosition:labelPositions[id],landscape:babyloniaStateNotes[id] })))
+export const stateDefinitions: StateDefinition[] = districts.flatMap(([provinceId,owner,states]) => states.map(([id,name,center,income,development,defense,terrain]) => ({ id,name,provinceId,owner:id==='zagros'?'nicanor':owner,center,income,development,defense,terrain,labelPosition:labelPositions[id],landscape:mediaStateNotes[id] ?? assyriaStateNotes[id] ?? susaStateNotes[id] ?? babyloniaStateNotes[id] })))
 
 // Reference points identify places; district labels identify regions. Some
 // districts have no named settlement in this initial content pack.
@@ -127,16 +134,19 @@ const settlementRows: [string, string, string, LonLat, SettlementDefinition['kin
   ['babylon-city','Babylon','babylon',[44.42,32.54],'city'],
   ['borsippa-city','Borsippa','babylon',[44.34,32.4],'city'],
   ['nippur-city','Nippur','nippur',[45.23,32.13],'city'],
-  ['uruk-city','Uruk','uruk',[45.64,31.32],'city'],
-  ['larsa-city','Larsa','uruk',[45.87,31.28],'city'],
-  ['ur-city','Ur','ur',[46.1,30.96],'port'],
+  ['uruk-city','Uruk','nippur',[45.64,31.32],'city'],
+  ['larsa-city','Larsa','nippur',[45.87,31.28],'city'],
+  ['ur-city','Ur','chaldaea',[46.1,30.96],'port'],
   ['susa-city','Susa','susa',[48.25,32.19],'city'],
+  ['ganzak-city','Ganzak','ganzak',[46.5,36.7],'city'],
   ['hulwan','Hulwan','zagros',[46.0,34.5],'fort'],
   ['ecbatana-city','Ecbatana','ecbatana',[48.52,34.8],'city'],
   ['rhagae-city','Rhagae','rhagae',[51.44,35.6],'city'],
+  ['western-valley-village','Western Valley','western-valley',[48.15,33.85],'village'],
+  ['mountain-entrance-village','Mountain Entrance','mountain-entrance',[49.95,32.65],'village'],
   ['tushpa-city','Tushpa','tushpa',[43.38,38.5],'city'],
 ]
-export const settlementDefinitions: SettlementDefinition[] = settlementRows.map(([id,name,stateId,position,kind]) => ({id,name,stateId,position,kind}))
+export const settlementDefinitions: SettlementDefinition[] = [...settlementRows.map(([id,name,stateId,position,kind]) => ({id,name,stateId,position,kind})), ...susianaStateSettlements, ...assyriaAdditionalSettlements]
 
 export const stateEventDefinitions = [
   {id:'susa-workshops',stateId:'susa',trigger:'develop' as const,coin:0,text:'Susa’s workshops expand beside the royal road.'},

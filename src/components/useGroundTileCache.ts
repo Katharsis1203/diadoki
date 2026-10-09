@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import { GroundTileCache } from '../game/groundTiles'
+import { GROUND_CACHE_BYTES, GroundTileCache } from '../game/groundTiles'
 import type { GroundTile, GroundTilePainter } from '../game/groundTiles'
 
 // Shared lifecycle/budget for prepared files and runtime comparison textures.
-export function useGroundTileCache(createPainter:()=>GroundTilePainter,demand:readonly GroundTile[],enabled:boolean){
-  const [cache]=useState(()=>new GroundTileCache(createPainter()))
+export function useGroundTileCache(createPainter:()=>GroundTilePainter,demand:readonly GroundTile[],enabled:boolean,concurrency=1){
+  const [cache]=useState(()=>new GroundTileCache(createPainter(),GROUND_CACHE_BYTES,concurrency))
   useEffect(()=>{if(enabled)cache.activate();else cache.dispose();return ()=>cache.dispose()},[cache,enabled])
   useEffect(()=>cache.setDemand(demand),[cache,demand])
   const subscribe=useCallback((listener:()=>void)=>{

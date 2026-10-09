@@ -53,7 +53,7 @@ test('scenery has stable anchors, bottom-centre footprints, depth order and geog
     const p=babyloniaScenery[i]
     assert.ok(inSceneryZone(p.position),p.id)
     if(i)assert.ok(babyloniaScenery[i-1].position[1]<=p.position[1])
-    if(p.asset==='mountain')assert.notEqual(territoryAt(p.position,game.states)?.provinceId,'babylonia')
+    if(p.asset==='mountain')assert.ok(!['babylon','sippar','diyala','nippur','chaldaea'].includes(territoryAt(p.position,game.states)?.state.id??''),'The river plain remains free of mountain artwork')
     if(p.settlementId){const s=game.settlements.find(s=>s.id===p.settlementId)!;assert.deepEqual(p.position,[s.x,s.y])}
   }
   assert.deepEqual(sceneryObjects(projection,1,1,'dominion'),[])
@@ -69,11 +69,12 @@ test('scenery has stable anchors, bottom-centre footprints, depth order and geog
   assert.equal(JSON.stringify(game),before)
 })
 
-test('Babylonia has one primary centre per state and one capital, with development-based visual tiers',()=>{
+test('Babylonia has one primary centre per lower river state and one capital, with development-based visual tiers',()=>{
   const game=createInitialState(), province=game.provinces.find(p=>p.id==='babylonia')!
+  const riverStateIds=province.stateIds.filter(id=>id!=='zagros')
   const primary=babyloniaScenery.filter(p=>p.asset==='settlement')
-  assert.equal(primary.length,province.stateIds.length)
-  assert.deepEqual(primary.map(p=>p.stateId).sort(),[...province.stateIds].sort())
+  assert.equal(primary.length,riverStateIds.length)
+  assert.deepEqual(primary.map(p=>p.stateId).sort(),[...riverStateIds].sort())
   assert.deepEqual(primary.filter(p=>p.isCapital).map(p=>p.stateId),['babylon'])
   assert.equal(primary.find(p=>p.isCapital)!.settlementId,province.mainSettlementId)
   assert.deepEqual([...new Set(primary.map(p=>p.tier))].sort(),['city','homestead','village'])
@@ -83,13 +84,13 @@ test('Babylonia has one primary centre per state and one capital, with developme
     assert.ok(!p.detail,`${p.name}: primary centre must not depend on local detail`)
   }
   for(const level of ['province','state'] as const)for(const zoom of [1.4,2.5,4.5,7]){
-    const rendered=sceneryObjects(mapProjection(true),zoom,zoom*1.2,level).filter(o=>o.placement.asset==='settlement')
-    assert.equal(rendered.length,province.stateIds.length)
+    const rendered=sceneryObjects(mapProjection(true),zoom,zoom*1.2,level).filter(o=>o.placement.asset==='settlement'&&province.stateIds.includes(o.placement.stateId))
+    assert.equal(rendered.length,riverStateIds.length)
     assert.ok(rendered.every(o=>o.opacity===1))
     const capital=rendered.find(o=>o.placement.asset==='settlement'&&o.placement.isCapital)!
     const homesteads=rendered.filter(o=>o.placement.asset==='settlement'&&o.placement.tier==='homestead')
     const villages=rendered.filter(o=>o.placement.asset==='settlement'&&o.placement.tier==='village')
-    assert.equal(homesteads.length,5)
+    assert.equal(homesteads.length,3)
     assert.equal(villages.length,1)
     assert.ok(villages.every(o=>o.size<capital.size&&homesteads.every(v=>v.size<o.size)))
   }

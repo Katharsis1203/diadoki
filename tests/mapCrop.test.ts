@@ -28,7 +28,7 @@ test('embedded background contains only the crop while all playable state centre
     assert.ok(y>=mapBounds.top-1e-6&&y<=mapBounds.bottom+1e-6)
   }
   const game=createInitialState()
-  assert.equal(game.states.length,48);assert.equal(game.provinces.length,10)
+  assert.equal(game.states.length,50);assert.equal(game.provinces.length,11)
   for(const state of game.states)assert.ok(isPhysicalLand([state.labelX,state.labelY]),state.id)
 })
 

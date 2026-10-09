@@ -235,3 +235,63 @@ npm run check:browser-pan -- http://127.0.0.1:5175
 ```
 
 The benchmark defaults remain pan, zoom and selection. The optional modes filter adds wide sweeps; reports now record median/p95 animation intervals and release task cost. Use sequential runs with no competing browser work.
+
+## Stable pan surface and loading — 4 October 2026
+
+The retained surface now survives grabbing, release and subsequent gestures. A 192-pixel maximum buffer replaces the temporary 128-pixel surface; the extra decoded RGBA surface estimate is capped at 32 MiB using the actual device ratio. A tested 384-pixel buffer increased zoom/selection work, so it was reduced. These surface estimates are separate from the ground cache. Zoom continues to draw at native scale and retain cursor anchoring.
+
+Prepared terrain owns its image subscriptions inside the memoized ground component. Three fetch/decode jobs replace serial file loading; runtime Canvas painting remains serial. The queue prioritises visible coarse coverage and visible fine tiles, then buffer tiles, coarse theatre coverage and budgeted fine neighbours. All demand stays below 87.5% of the 64 MiB cache budget, including preload demand; in-flight pixel reservations count against the same budget. Obsolete requests are aborted, and old results/rejections cannot replace or fail newer requests with the same key. Missing fine imagery uses decoded coarse coverage; before either image arrives, only cheap native land/coast paths are drawn.
+
+### Paired production measurements
+
+The baseline is commit `a1f0df6`. Both production builds ran sequentially with Full detail, headless Brave, 1440×900, three samples and 120 inputs per scenario. The protocol matches the preceding pan report. Raw samples are in [stable-pan-before.json](benchmarks/stable-pan-before.json) and [stable-pan-after.json](benchmarks/stable-pan-after.json).
+
+| Scenario | Before task time | After task time | Before median frame interval | After median |
+| --- | ---: | ---: | ---: | ---: |
+| Small pan, including release | 492 ms | 491 ms | 35.6 ms | 26.7 ms |
+| Wide pan, including release | 905 ms | 873 ms | 32.8 ms | 30.8 ms |
+| Alternating wheel zoom | 5.35 s | 4.97 s | 62.6 ms | 59.1 ms |
+| Selection | 1.25 s | 1.28 s | 24.3 ms | 31.0 ms |
+
+Pan totals are medians of each sample's task plus release work. Wide-pan release work falls from 11.6 to 1.9 ms; wide-pan layout falls from 31.1 to 21.9 ms. Small-pan p95 intervals fall from 53.1 to 39.1 ms; wide-pan p95 rises from 45.5 to 48.9 ms. These results show improved small-pan pacing and cheaper release work, with broadly similar total pan work. Selection frame pacing varies adversely in this run, despite nearly unchanged task totals. They do not establish universal frame-rate improvements or 60 Hz rendering.
+
+### Verification
+
+All 99 automated tests, lint and the production build pass. New tests cover pool priority/concurrency, shared reservations, aborts, disposal/reactivation and late same-key failures, preload coverage/budgets and high-DPI surface limits. Browser checks cover retained SVG cameras and dimensions across gesture boundaries, exact coordinates, coverage, cancellation and wheel anchors. Delayed-image checks confirm coarse coverage, isolated ground DOM publication, single-image replacement without doubled coastal alpha, cache limits, URL release and reactivation. Failed fine downloads retain coarse imagery. The optional browser checks need the same authoring tools as the benchmark:
+
+```sh
+npm run check:browser-pan -- http://127.0.0.1:5175
+npm run check:browser-loading -- http://127.0.0.1:5175
+node scripts/benchmark-ground-loading.mjs http://127.0.0.1:5175 loading.json
+```
+
+In the controlled cold-loading comparison, median visible image coverage improved from **788 to 428 ms** (46%) and rendered detail readiness from **793 to 623 ms** (21%). Three new cold contexts per build each added 150 ms to every ground request. Raw samples: [before](benchmarks/stable-pan-loading-before.json) and [after](benchmarks/stable-pan-loading-after.json). These numbers describe the simulated network, not the user's connection.
+
+The cold-loading benchmark injects 150 ms into each ground request in a fresh browser context. Its clock begins when the ground component mounts, excluding app startup. Visible-image coverage accepts loaded coarse imagery; rendered-detail readiness requires the requested mip across the entire rendered surface, including its buffer.
+
+Production regressions also passed all 13 settings and persistence, all 48 campaign polygon clicks / ten province fits, conquest, all 181 atlas centre clicks / 57 province fits, responsive views and unchanged campaign resources. Pan checks pass with prepared, live Canvas and vector ground. Province/Overview comparisons have the same visible scenery and labels, with shared element boxes differing by less than 0.0002 screen pixels. Screenshots differ at antialiased edges after retaining the composited surface at rest; they are not pixel-identical. The regenerated 126 ground images differ by at most one colour-channel level from the prior files. The final app chunk is 427.99 kB / 141.67 kB gzip; CSS is 14.58 kB / 4.30 kB gzip. No dependencies were added.
+
+For exploratory layer comparisons, `DIADOCHI_BENCHMARK_OMIT=mountains,vegetation` disables only those controls in a fresh browser context. Other supported keys are `paperGrain`, `groundDetail` and `ownershipFills`. These diagnostic runs do not change defaults or saved user preferences.
+
+### Remaining layer costs
+
+Exploratory runs on the final build used two samples of 60 wide-pan/zoom inputs, Full detail, the same browser/viewport and one layer group disabled at a time. Raw reports: [Full](benchmarks/stable-pan-layers-full.json), [mountains/vegetation disabled](benchmarks/stable-pan-layers-no-scenery.json), [paper disabled](benchmarks/stable-pan-layers-no-paper.json), [fine detail disabled](benchmarks/stable-pan-layers-no-fine-detail.json).
+
+| Visible layer configuration | Wide-pan task | Zoom task |
+| --- | ---: | ---: |
+| Full detail | 541 ms | 3,068 ms |
+| Mountains/vegetation disabled | 305 ms | 2,066 ms |
+| Paper texture disabled | 448 ms | 2,765 ms |
+| Fine detail disabled | 445 ms | 2,023 ms |
+
+The benchmark's even-sample summary selects the upper middle sample, so these short runs are exploratory comparisons rather than precise attribution. They suggest static scenery and fine terrain detail deserve further profiling and potentially separate transparent imagery. Disabling a layer removes preparation and drawing together; the measurements do not isolate SVG raster cost or establish the benefit of baking it. Default visual detail stays enabled. Transparent scenery must preserve existing depth sorting, settlement occlusion, label clearance and zoom sharpness before it replaces authored vectors.
+
+## Close-zoom quality correction — 4 October 2026
+
+A reported close-zoom screenshot exposed a missed visual regression: retaining `will-change: transform` and a 3D translation across SVG viewBox changes let Chromium reuse an earlier low-resolution raster. This blurred live mountain symbols, rivers, borders and texture together. The prepared ground images were not the cause of the blocky vector artwork. Removing promotion at the same camera immediately restored sharp SVG drawing. Earlier at-rest Province/Overview comparisons did not cover close zoom and failed to catch this.
+
+The surface and SVG stay mounted, but zoom/resize/DPR changes temporarily remove forced promotion. Two animation callbacks allow a native-resolution frame to paint before caching the current scale again. Translation-only frames and gesture boundaries keep their buffered surface. Promotion state resets on every scale change, including rapid reversals to a previously visited scale. No artwork or cache resolution was reduced.
+
+`npm run check:browser-sharpness -- http://127.0.0.1:5175` compares close-zoom screenshots against the same scene with promotion disabled, at DPR 1 and 2, across repeated zoom cycles and rapid alternating wheel events. It uses decoded PNG pixels and tolerates small antialiasing differences. The earlier navigation reports predate this quality fix and should not be treated as measurements of the corrected zoom renderer.
+
+All 99 tests, lint and production build pass. The saved pre-fix DPR-1 screenshot differed from the native reference by 2.628 average RGB channel levels in the checked region. Native-reference screenshot differences after the fix averaged 0.000 channel levels at DPR 1 and 0.020–0.021 at DPR 2, including rapid wheel reversals. Desktop/mobile pan regressions pass with prepared, live Canvas and vector ground, and isolated loading/resource checks pass.

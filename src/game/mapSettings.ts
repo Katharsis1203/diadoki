@@ -18,8 +18,8 @@ export function parseMapSettings(raw:string|null):MapSettings {
 }
 export const mapSettingGroups:readonly {name:string;options:readonly {key:MapSetting;name:string;description:string}[]}[]=[
   {name:'Terrain',options:[
-    {key:'mountains',name:'Mountains and hills',description:'Upright peaks and overview ranges.'},
-    {key:'vegetation',name:'Vegetation',description:'Trees, palms and reeds.'},
+    {key:'mountains',name:'Mountains and hills',description:'Peaks, hills, rocky outcrops and overview ranges.'},
+    {key:'vegetation',name:'Vegetation',description:'Trees, palms, reeds and scrub.'},
     {key:'groundShading',name:'Terrain shading',description:'Rocky, fertile, marsh and earth colour washes.'},
     {key:'groundDetail',name:'Fine ground detail',description:'Fields, soil marks and small terrain engravings.'},
     {key:'paperGrain',name:'Paper texture',description:'Grain on the ground and map margins.'},

@@ -11,6 +11,9 @@ const url=process.argv[2]??'http://127.0.0.1:5175'
 const samples=Number(process.env.DIADOCHI_BENCHMARK_SAMPLES??3)
 const events=Number(process.env.DIADOCHI_BENCHMARK_EVENTS??120)
 const modes=(process.env.DIADOCHI_BENCHMARK_MODES??'pan,zoom,selection').split(',')
+const omitted=(process.env.DIADOCHI_BENCHMARK_OMIT??'').split(',').filter(Boolean)
+const layerNames={mountains:'Mountains and hills',vegetation:'Vegetation',paperGrain:'Paper texture',groundDetail:'Fine ground detail',ownershipFills:'Ownership colour fills'}
+if(omitted.some(key=>!Object.hasOwn(layerNames,key)))throw new Error('Unknown diagnostic layer in DIADOCHI_BENCHMARK_OMIT.')
 if(!Number.isInteger(samples)||samples<1||!Number.isInteger(events)||events<1)throw new Error('Samples and events must be positive integers.')
 if(!modes.length||modes.some(mode=>!['pan','pan-wide','zoom','selection'].includes(mode))||new Set(modes).size!==modes.length)throw new Error('Modes must be unique pan, pan-wide, zoom or selection scenarios.')
 const browser=await chromium.launch({headless:true,...(process.env.DIADOCHI_BROWSER?{executablePath:process.env.DIADOCHI_BROWSER}:{}),args:['--no-sandbox']})
@@ -24,6 +27,11 @@ try{
   if(process.env.DIADOCHI_BENCHMARK_PRESET==='light'){
     await page.getByRole('button',{name:'Settings',exact:true}).click()
     await page.getByRole('button',{name:'Light detail',exact:true}).click()
+    await page.getByRole('button',{name:'Close map settings'}).click()
+  }
+  if(omitted.length){
+    await page.getByRole('button',{name:'Settings',exact:true}).click()
+    for(const key of omitted)await page.getByRole('checkbox',{name:new RegExp('^'+layerNames[key])}).uncheck()
     await page.getByRole('button',{name:'Close map settings'}).click()
   }
   for(let sample=0;sample<samples;sample++)for(const mode of modes){
@@ -63,6 +71,6 @@ try{
 }finally{await browser.close()}
 function median(values){return values.toSorted((a,b)=>a-b)[Math.floor(values.length/2)]}
 const summary=Object.fromEntries(modes.map(mode=>[mode,Object.fromEntries(['scriptMs','taskMs','layoutMs','styleMs','wallMs','releaseTaskMs','frameMedianMs','frameP95Ms'].map(key=>[key,median(records.filter(r=>r.mode===mode).map(r=>r[key]))]))]))
-const report={url,viewport:'1440×900',samples,eventsPerScenario:events,preset:process.env.DIADOCHI_BENCHMARK_PRESET??'full',modes,records,summary}
+const report={url,viewport:'1440×900',samples,eventsPerScenario:events,preset:process.env.DIADOCHI_BENCHMARK_PRESET??'full',omitted,modes,records,summary}
 if(process.argv[3])fs.writeFileSync(process.argv[3],JSON.stringify(report,null,2)+'\n')
 console.log(JSON.stringify(report,null,2))

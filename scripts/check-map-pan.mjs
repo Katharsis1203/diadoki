@@ -31,7 +31,9 @@ try{
     }
     await ready()
     const start=await camera(),point={x:size.width*.5,y:size.height*.5}
+    const idleView=await map.getAttribute('viewBox'),idleSize=await map.boundingBox()
     await page.mouse.move(point.x,point.y);await page.mouse.down()
+    assert.equal(await map.getAttribute('viewBox'),idleView,'Grabbing rebuilt the retained surface')
     await page.mouse.move(point.x+12,point.y+8);await page.waitForTimeout(50);await ready()
     const retained=await map.getAttribute('viewBox')
     for(const [dx,dy] of [[25,10],[45,20],[65,-25],[25,30]]){
@@ -47,12 +49,25 @@ try{
     await page.mouse.move(point.x+dx,point.y+dy);await page.waitForTimeout(60);await covered()
     assert.notEqual(await map.getAttribute('viewBox'),retained)
     const shifted=await camera()
+    const shiftedView=await map.getAttribute('viewBox')
     await page.mouse.up();await page.waitForTimeout(60)
     const released=await camera()
     assert.ok(Math.hypot(shifted.x-released.x,shifted.y-released.y)<.02,'Release jumped')
     assert.equal(await page.locator('.map-pan-layer').getAttribute('data-panning'),'false')
+    assert.equal(await map.getAttribute('viewBox'),shiftedView,'Release rebuilt the retained surface')
+    const releasedSize=await map.boundingBox()
+    assert.equal(releasedSize.width,idleSize.width)
+    assert.equal(releasedSize.height,idleSize.height)
     assert.equal(await page.locator('.command-panel').count(),0,'Drag triggered selection')
     await covered();await ready()
+    for(let i=0;i<3;i++){
+      const before=await map.getAttribute('viewBox')
+      await page.mouse.move(point.x,point.y);await page.mouse.down()
+      assert.equal(await map.getAttribute('viewBox'),before)
+      await page.mouse.move(point.x+15,point.y+10);await page.waitForTimeout(35);await page.mouse.up()
+      assert.equal(await map.getAttribute('viewBox'),before,'Short repeated gesture rebuilt the surface')
+      await covered()
+    }
     // Zoom during a retained translation uses the current screen matrix.
     await page.mouse.move(point.x,point.y);await page.mouse.down();await page.mouse.move(point.x+30,point.y+15);await page.waitForTimeout(40)
     await page.mouse.move(point.x,point.y);await page.waitForTimeout(40)

@@ -1,10 +1,15 @@
 import fs from 'node:fs'
+import { atropateneProvinceOutline, atropateneDistrictMasks, atropateneNewStateIds, nisaeanMountainShoulderOutline } from '../src/game/atropateneGeography.ts'
+import { physicalLandRings } from '../src/game/physicalLand.ts'
+import { mountainEntranceRing, westernValleyRing } from '../src/game/mountainEntranceGeography.ts'
 import clipping from 'polygon-clipping'
 import { provinceDefinitions, settlementDefinitions, stateDefinitions } from '../src/game/geographyContent.ts'
 import { terrainFeatures } from '../src/game/terrainContent.ts'
 import { rivers } from '../src/game/mapGeometry.ts'
-import { babyloniaDistrictMasks, babyloniaEasternFrontier } from '../src/game/babyloniaGeography.ts'
+import { babyloniaAuthoringMasks, babyloniaDistrictMasks, babyloniaEasternFrontier } from '../src/game/babyloniaGeography.ts'
 import { terrainBoundaryCuts, terrainJunctions } from '../src/game/terrainBoundaries.ts'
+import { susianaDistrictMasks } from '../src/game/susaGeography.ts'
+import { mediaDistrictMasks, mediaNorthernLatitude, mediaNorthernRiver, zagrosDistrictOutline, zagrosLowerOutline, localRiverNorthernCountry, medianNorthernEdge, nisaeanRiverOutline, refinedCapitalOutline, sipparNorthernBorder } from '../src/game/mediaGeography.ts'
 
 // One coastline-clipped campaign envelope. There are no legacy province shapes.
 const envelope = JSON.parse(fs.readFileSync(new URL('./campaign-outline.json', import.meta.url)))
@@ -13,13 +18,21 @@ const close = (ring) => [...ring, ring[0]]
 const polygon = (ring) => [[close(ring)]]
 const area = (ring) => Math.abs(ring.reduce((sum,p,i) => { const q=ring[(i+1)%ring.length];return sum+p[0]*q[1]-q[0]*p[1] },0))/2
 const main = (multi, id) => {
-  const sorted = [...multi].sort((a,b)=>area(b[0])-area(a[0]))
-  if (!sorted.length || sorted[0].length !== 1 || sorted.slice(1).some(p=>area(p[0])>.000001)) throw new Error(`${id}: disconnected district or hole`)
+  const sorted = multi.map(poly=>poly.filter((ring,i)=>i===0||area(ring)>1e-6)).sort((a,b)=>area(b[0])-area(a[0]))
+  if (!sorted.length || sorted[0].length !== 1 || sorted.slice(1).some(p=>area(p[0])>.000001)) throw new Error(`${id}: disconnected district or hole (${sorted.map(p=>area(p[0]).toFixed(3)).join(', ')})`)
   return sorted[0][0].slice(0,-1)
 }
 // Nearest district centres form irregular catchments. Cities, coastlines and
 // geography constraints determine their size; no horizontal/vertical slicing.
-const seeds = stateDefinitions.map(s=>({ ...s, point: project(s.center) }))
+// Retired Cossaea, Ur and Uruk seeds preserve neighbouring catchments until
+// their province unions are repartitioned. They have no runtime states.
+// Keep the provincial catchments fixed when relocating the two river-district seats.
+const authoringCentres={karun:[48.7,31.3],elymais:[49.3,31.8]}
+const authoringProvinces={zagros:'media',ganzak:'media',atropatene:'media'}
+const authoringDefinitions=[...stateDefinitions.map(s=>({...s,provinceId:authoringProvinces[s.id]??s.provinceId,center:authoringCentres[s.id]??s.center})),{id:'cossaea',provinceId:'susiana',center:[48.2,33.1]},
+  {id:'uruk',provinceId:'babylonia',center:[45.64,31.32]},
+  {id:'ur',provinceId:'babylonia',center:[46.1,30.96]}]
+const seeds = authoringDefinitions.filter(s=>!['mountain-entrance','western-valley',...atropateneNewStateIds].includes(s.id)).map(s=>({ ...s, point: project(s.center) }))
 const halfPlane = (ring, a, b, limit) => {
   const result=[]
   ring.forEach((p,i)=>{
@@ -112,8 +125,8 @@ for(const bendScale of [1,.5,.25,0]){
 }
 // Replace Babylonia's eastern seam on both sides, keeping the rest of the
 // campaign fixed. The lower frontier follows one bank rather than crossing it.
-const babylonIds = stateDefinitions.filter(state => state.provinceId === 'babylonia').map(state => state.id)
-const susianaIds = stateDefinitions.filter(state => state.provinceId === 'susiana').map(state => state.id)
+const babylonIds = authoringDefinitions.filter(state => state.provinceId === 'babylonia').map(state => state.id)
+const susianaIds = authoringDefinitions.filter(state => state.provinceId === 'susiana' && !['mountain-entrance','western-valley'].includes(state.id)).map(state => state.id)
 const oldBabylon = clipping.union(...babylonIds.map(id => polygon(states[id])))
 const oldSusiana = clipping.union(...susianaIds.map(id => polygon(states[id])))
 const oldOutline = main(oldBabylon, 'old Babylonia')
@@ -139,7 +152,7 @@ for (const id of susianaIds) {
 }
 // Babylonia's internal catchments use authored rivers and dryland margins.
 let unassignedBabylonia = babylonEnvelope
-for (const {stateId, outline} of babyloniaDistrictMasks) {
+for (const {stateId, outline} of babyloniaAuthoringMasks) {
   const mask = polygon(outline.map(project))
   states[stateId] = main(clipping.intersection(unassignedBabylonia, mask), stateId)
   unassignedBabylonia = clipping.difference(unassignedBabylonia, mask)
@@ -184,16 +197,221 @@ for (const {states:[a,b],via,feature} of terrainBoundaryCuts) {
   console.log(`Authored ${a}/${b}: ${feature}.`)
 }
 
+// Rebuild the western valley's shared ridge boundary, including the old
+// Cossaean shoulder. Keep the river settlements and unrelated borders intact.
+const valleyNeighbours=['nisaea','ecbatana','paraitakene','cossaea']
+const valleyPool=clipping.union(...valleyNeighbours.map(id=>polygon(states[id])))
+const westernValley=clipping.intersection(valleyPool,polygon(westernValleyRing))
+for(const id of valleyNeighbours)
+  states[id]=main(clipping.difference(polygon(states[id]),westernValley),'western valley neighbour '+id)
+states['western-valley']=main(westernValley,'western-valley')
+const entranceMask=polygon(mountainEntranceRing)
+const entranceNeighbours=['paraitakene','elymais','cossaea','ecbatana']
+for(const [id,ring] of Object.entries(states))if(!entranceNeighbours.includes(id)&&clipping.intersection(polygon(ring),entranceMask).some(poly=>area(poly[0])>1e-5))throw new Error(`Entrance unexpectedly overlaps ${id}`)
+let entrance=entranceMask
+for(const id of entranceNeighbours){
+  const parts=clipping.difference(polygon(states[id]),entranceMask).sort((a,b)=>area(b[0])-area(a[0]))
+  if(parts.slice(1).some(p=>area(p[0])>20))throw new Error(`Entrance disconnects ${id}`)
+  if(parts.length>1)entrance=clipping.union(entrance,...parts.slice(1).map(p=>[p]))
+  states[id]=main(parts.slice(0,1),'entrance neighbour '+id)
+}
+states['mountain-entrance']=main(entrance,'mountain-entrance')
+
+// Retire Cossaea and partition the province once with shared river/valley cuts.
+// Elymais receives the remaining contiguous southern foothill hinterland.
+let remainingSusiana=clipping.union(...[...susianaIds,'mountain-entrance'].map(id=>polygon(states[id])))
+for(const {stateId,outline} of susianaDistrictMasks){
+  const mask=polygon(outline.map(project))
+  states[stateId]=main(clipping.intersection(remainingSusiana,mask),stateId)
+  remainingSusiana=clipping.difference(remainingSusiana,mask)
+}
+states.elymais=main(remainingSusiana,'elymais')
+delete states.cossaea
+
+// Repartition the complete, terrain-adjusted Babylonian envelope once. Legacy
+// Ur/Uruk seeds preserve the exterior only; neither survives as a runtime state.
+let remainingBabylonia=clipping.union(...babylonIds.map(id=>polygon(states[id])))
+for(const {stateId,outline} of babyloniaDistrictMasks){
+  const mask=polygon(outline.map(project))
+  states[stateId]=main(clipping.intersection(remainingBabylonia,mask),stateId)
+  remainingBabylonia=clipping.difference(remainingBabylonia,mask)
+}
+states.nippur=main(remainingBabylonia,'nippur')
+delete states.ur
+delete states.uruk
+
+// Repartition the southern Median catchments as one shared mesh. Preserve
+// the finished Susiana/Persis catchments, then apply the local Diyala and
+// separate northern province contours below.
+const mediaIds=['zagros','ganzak','nisaea','ecbatana','rhagae','paraitakene','western-valley']
+const originalZagros=polygon(states.zagros)
+const oldMedia=clipping.union(...mediaIds.map(id=>polygon(states[id])))
+const oldUpperBabylonia=clipping.union(...['diyala','sippar'].map(id=>polygon(states[id])))
+const medianPool=clipping.union(oldMedia,oldUpperBabylonia)
+const northernStart=states.zagros.findIndex(p=>Math.hypot(p[0]-project([44.78,35.60])[0],p[1]-project([44.78,35.60])[1])<.001)
+const northernEnd=states.zagros.findIndex(p=>Math.hypot(p[0]-project([46.10,35.65])[0],p[1]-project([46.10,35.65])[1])<.001)
+if(northernStart<0||northernEnd<0)throw new Error('Missing original Zagros northern frontage')
+const northernFrontier=Array.from({length:(northernEnd-northernStart+states.zagros.length)%states.zagros.length+1},(_,i)=>states.zagros[(northernStart+i)%states.zagros.length])
+const northJunction=zagrosDistrictOutline.findIndex(([lon,lat])=>lon===46.10&&lat===35.65)
+const zagros=clipping.intersection(medianPool,polygon([...northernFrontier,...zagrosDistrictOutline.slice(northJunction+1).map(project)]))
+const upperBabylonia=clipping.difference(clipping.union(oldUpperBabylonia,polygon(states.zagros)),zagros)
+const diyalaMask=polygon(babyloniaDistrictMasks.find(m=>m.stateId==='diyala').outline.map(project))
+states.diyala=main(clipping.intersection(upperBabylonia,diyalaMask),'diyala')
+states.sippar=main(clipping.difference(upperBabylonia,diyalaMask),'sippar')
+states.zagros=main(zagros,'zagros')
+let remainingMedia=clipping.difference(medianPool,upperBabylonia,zagros)
+const northernMask=polygon([[40,mediaNorthernLatitude],[55,mediaNorthernLatitude],[55,40],[40,40]].map(project))
+const preservedNorthern=Object.fromEntries(['ganzak','ecbatana','rhagae'].map(id=>[id,clipping.intersection(polygon(states[id]),northernMask)]))
+remainingMedia=clipping.difference(remainingMedia,northernMask)
+for(const {stateId,outline} of mediaDistrictMasks){
+  const mask=polygon(outline.map(project))
+  const district=clipping.intersection(remainingMedia,mask)
+  states[stateId]=main(preservedNorthern[stateId]?clipping.union(district,preservedNorthern[stateId]):district,stateId)
+  remainingMedia=clipping.difference(remainingMedia,mask)
+}
+const northOfPlain=polygon([...mediaNorthernRiver,[mediaNorthernRiver.at(-1)[0],38],[44,38],[44,mediaNorthernRiver[0][1]]].map(project))
+const ganzak=clipping.intersection(remainingMedia,clipping.union(polygon(states.ganzak),northOfPlain))
+states.ganzak=main(clipping.union(ganzak,preservedNorthern.ganzak),'ganzak')
+const rhagae=clipping.union(clipping.difference(remainingMedia,ganzak),preservedNorthern.rhagae)
+states.rhagae=main(rhagae,'rhagae')
+
+// The orange frontage is the local upper Diyala, below the northern plain's
+// river. Its mountain approaches remain in Babylonia, while the northern
+// country joins Ganzak in the separate Atropatene province.
+const lowerZagros=clipping.intersection(polygon(states.zagros),polygon(zagrosLowerOutline.map(project)))
+const northernZagros=clipping.difference(polygon(states.zagros),lowerZagros)
+states.zagros=main(lowerZagros,'zagros')
+let northernCountry=clipping.union(polygon(states.ganzak),northernZagros)
+// Remove the former Zagros northern arm from Sippar as well: the earlier
+// catchment partition must not leave a second Babylonian tongue above this river.
+const aboveLocalRiver=polygon(localRiverNorthernCountry.map(project))
+const oldNorthernArm=clipping.intersection(originalZagros,aboveLocalRiver)
+for(const id of ['sippar','diyala']){
+  const original=polygon(states[id])
+  northernCountry=clipping.union(northernCountry,clipping.intersection(original,oldNorthernArm))
+  states[id]=main(clipping.difference(original,oldNorthernArm),id)
+}
+const medianSouth=polygon([...medianNorthernEdge,[55,29],[44,29]].map(project))
+for(const id of ['ecbatana','rhagae']){
+  const original=polygon(states[id])
+  northernCountry=clipping.union(northernCountry,clipping.difference(original,medianSouth))
+  states[id]=main(clipping.intersection(original,medianSouth),id)
+}
+states.ganzak=main(northernCountry,'ganzak')
+
+// Final river/ridge refinements operate only on the two adjacent state pairs.
+// Province membership and political ownership stay independent of this mesh.
+const riverPair=clipping.union(polygon(states.nisaea),polygon(states.ganzak))
+const riverOutline=polygon(nisaeanRiverOutline.map(project))
+states.nisaea=main(clipping.intersection(riverPair,riverOutline),'nisaea')
+states.ganzak=main(clipping.difference(riverPair,riverOutline),'ganzak')
+const capitalPair=clipping.union(polygon(states.ecbatana),polygon(states.rhagae))
+const capitalOutline=polygon(refinedCapitalOutline.map(project))
+states.ecbatana=main(clipping.intersection(capitalPair,capitalOutline),'ecbatana')
+states.rhagae=main(clipping.difference(capitalPair,capitalOutline),'rhagae')
+
+// Align Sippar's northern frontage with the straight Diyala reach's endpoint.
+// Reuse native junctions before noding to avoid tiny slivers.
+const sipparJoin=project(sipparNorthernBorder[0])
+const nativeSipparJoin=states.sippar.find(p=>Math.hypot(p[0]-sipparJoin[0],p[1]-sipparJoin[1])<.001)
+if(!nativeSipparJoin)throw new Error('Missing western Sippar river junction')
+const cleanSipparBorder=[nativeSipparJoin,...sipparNorthernBorder.slice(1).map(project)]
+const belowSipparBorder=polygon([project([30,sipparNorthernBorder[0][1]]),...cleanSipparBorder,
+  project([55,34.70]),project([55,25]),project([30,25])])
+const formerSippar=polygon(states.sippar)
+const northernShoulder=clipping.difference(formerSippar,belowSipparBorder)
+states.sippar=main(clipping.intersection(formerSippar,belowSipparBorder),'sippar')
+// Continue the existing Assur/Ganzak seam to the new border. Each adjoining
+// state takes its own side of the removed shoulder; no isolated leftover state.
+const northernJunction=project([44.78,35.60])
+const northernIndex=states.assur.findIndex(p=>Math.hypot(p[0]-northernJunction[0],p[1]-northernJunction[1])<.001)
+if(northernIndex<0)throw new Error('Missing Assur eastern foothill junction')
+const a=states.assur[northernIndex]
+const adjacent=[states.assur[(northernIndex+1)%states.assur.length],states.assur[(northernIndex-1+states.assur.length)%states.assur.length]]
+const b=adjacent.sort((p,q)=>Math.abs(p[0]-a[0])-Math.abs(q[0]-a[0]))[0]
+const cutX=-(b[1]-a[1]),cutY=b[0]-a[0],cutLimit=cutX*a[0]+cutY*a[1]
+const assurCentre=project(stateDefinitions.find(s=>s.id==='assur').center)
+const westSign=cutX*assurCentre[0]+cutY*assurCentre[1]<=cutLimit?1:-1
+const westernHalf=polygon(halfPlane([[-2000,-2000],[2000,-2000],[2000,2000],[-2000,2000]],
+  westSign*cutX,westSign*cutY,westSign*cutLimit))
+const westernShoulder=clipping.intersection(northernShoulder,westernHalf)
+states.assur=main(clipping.union(polygon(states.assur),westernShoulder),'assur')
+states.ganzak=main(clipping.union(polygon(states.ganzak),clipping.difference(northernShoulder,westernHalf)),'ganzak')
+
+
+
+
+// A bounded five-state Atropatene partition. New seats do not participate in
+// the legacy catchments; only the adjoining shoulders and coast are reassigned.
+let physicalLand=[]
+for(const {points} of physicalLandRings)physicalLand=clipping.xor(physicalLand,polygon(points))
+const atropateneMask=clipping.intersection(polygon(atropateneProvinceOutline.map(project)),physicalLand)
+const oldAtropatene=clipping.union(polygon(states.atropatene),polygon(states.ganzak))
+let remainingAtropatene=atropateneMask
+// Retired northern/western/eastern shoulders go to the adjoining province,
+// rather than surviving as Atropatene components across a mountain barrier.
+let retiredAtropatene=clipping.difference(oldAtropatene,atropateneMask)
+const northShoulder=clipping.intersection(retiredAtropatene,polygon([[40,38.2],[52,38.2],[52,42],[40,42]].map(project)))
+states.ararat=main(clipping.union(polygon(states.ararat),northShoulder),'ararat')
+retiredAtropatene=clipping.difference(retiredAtropatene,northShoulder)
+const eastShoulder=clipping.intersection(retiredAtropatene,polygon([[49.2,30],[55,30],[55,42],[49.2,42]].map(project)))
+states.rhagae=main(clipping.union(polygon(states.rhagae),eastShoulder),'rhagae')
+retiredAtropatene=clipping.difference(retiredAtropatene,eastShoulder)
+// Retain the western valley division; neither Assyrian state can inherit a
+// disconnected provincial island from the retired tail.
+const assurShoulder=clipping.intersection(retiredAtropatene,polygon([[40,30],[49.8,30],[49.8,35.85],[40,35.85]].map(project)))
+states.assur=main(clipping.union(polygon(states.assur),assurShoulder),'assur')
+retiredAtropatene=clipping.difference(retiredAtropatene,assurShoulder)
+states.arbela=main(clipping.union(polygon(states.arbela),retiredAtropatene),'arbela')
+// Take only the mask's actual overlap from surrounding core neighbours.
+for(const id of ['ararat','tushpa','arbela','assur','zagros','nisaea','ecbatana','rhagae'])
+  states[id]=main(clipping.difference(polygon(states[id]),atropateneMask),id)
+for(const {stateId,outline} of atropateneDistrictMasks){
+  const mask=polygon(outline.map(project))
+  states[stateId]=main(clipping.intersection(remainingAtropatene,mask),stateId)
+  remainingAtropatene=clipping.difference(remainingAtropatene,mask)
+}
+states.ganzak=main(remainingAtropatene,'ganzak')
+
+// Move the former Assyrian shoulder into Ganzak/Nisaea before independent
+// mountains remove it from ownership and movement. Share the cut on both sides.
+const shoulderMask=polygon(nisaeanMountainShoulderOutline.map(project))
+let medianShoulder=[]
+for(const id of ['assur','arbela']){
+  const removed=clipping.intersection(polygon(states[id]),shoulderMask)
+  const remaining=clipping.difference(polygon(states[id]),removed).sort((a,b)=>area(b[0])-area(a[0]))
+  // Include any terminal tip enclosed by the cut, instead of leaving a tiny
+  // detached Assyrian component behind the new mountain shoulder.
+  medianShoulder=clipping.union(medianShoulder,removed,remaining.slice(1))
+  states[id]=main(remaining.slice(0,1),id)
+}
+states.nisaea=main(clipping.union(polygon(states.nisaea),clipping.intersection(medianShoulder,medianSouth)),'nisaea')
+states.ganzak=main(clipping.union(polygon(states.ganzak),clipping.difference(medianShoulder,medianSouth)),'ganzak')
+
 // Insert new junctions on both sides of every seam before sharing mesh vertices.
 const finalPoints = [...new Map(Object.values(states).flat().map(p => [round(p).join(','), round(p)])).values()]
 for (const [id, rawRing] of Object.entries(states)) {
   const ring = rawRing.map(round)
   states[id] = ring.flatMap((a, i) => {
     const b = ring[(i + 1) % ring.length], dx = b[0] - a[0], dy = b[1] - a[1], len2 = dx * dx + dy * dy
-    return finalPoints.map(p => ({p, t: ((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len2}))
-      .filter(({p,t}) => t >= 0 && t < 1-1e-8 && Math.abs(dx*(p[1]-a[1])-dy*(p[0]-a[0])) < .0001)
-      .sort((a,b) => a.t-b.t).map(({p}) => p)
+    return [a,...finalPoints.map(p => ({p, t: ((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len2}))
+      .filter(({p,t}) => t > 1e-8 && t < 1-1e-8 && p.join(',')!==a.join(',') && p.join(',')!==b.join(',') && Math.abs(dx*(p[1]-a[1])-dy*(p[0]-a[0])) < .0001)
+      .sort((a,b) => a.t-b.t).map(({p}) => p)]
   })
+}
+
+// Clipping at an existing ridge vertex can leave a zero-area out-and-back
+// spur across the ring's start. Retain the full area, whichever cyclic half
+// contains it; reject self-touching territory with two nonzero components.
+for(const [id,source] of Object.entries(states)){
+  let ring=source
+  while(new Set(ring.map(p=>p.join(','))).size<ring.length){
+    const keys=ring.map(p=>p.join(',')),i=keys.findIndex((key,index)=>keys.indexOf(key)!==index),j=keys.indexOf(keys[i])
+    const first=ring.slice(j,i),second=[...ring.slice(i),...ring.slice(0,j)]
+    if(area(first)>1e-6&&area(second)>1e-6)throw new Error(`${id}: self-touching district`)
+    ring=area(first)>area(second)?first:second
+  }
+  states[id]=ring
 }
 
 // Every province is the exact union of its child states, never a separate layer
@@ -240,7 +458,7 @@ for(const place of settlementDefinitions){
   if(!inside(project(place.position),states[place.stateId]))throw new Error(`${place.name} lies outside ${place.stateId}`)
 }
 const campaignRing=main(clipping.union(...Object.values(states).map(polygon)),'campaign')
-const symmetricDifference=clipping.xor(envelope,polygon(campaignRing))
+const symmetricDifference=clipping.xor(clipping.union(envelope,entranceMask,atropateneMask),polygon(campaignRing))
 if(symmetricDifference.some(p=>area(p[0])>.001))throw new Error('Districts do not exactly cover the campaign mainland')
 // Outlines reference the same mesh instead of serializing duplicate coordinates.
 // Keep the public coordinate exports for rendering and geographic validation.

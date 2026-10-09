@@ -24,7 +24,7 @@ const tasks = {
   },
   provinceFit: { count: 500, work: () => focusCamera(shapes, { width: 1440, height: 900 }, false, true).zoom },
   scenery: { count: 1000, work: () => sceneryObjects(projection, 2.5, 3, 'province', game.states).length },
-  movement: { count: 1000, work: () => movementPath(game, 'ur')?.length ?? 0 },
+  movement: { count: 1000, work: () => movementPath(game, 'chaldaea')?.length ?? 0 },
 }
 
 let checksum = 0

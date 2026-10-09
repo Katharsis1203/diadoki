@@ -20,11 +20,11 @@ export const CoreTerrainGround = memo(function CoreTerrainGround({view}:{view:La
 // Fixed projection lets us prepare overview artwork once, rather than rebuild
 // all peaks when the viewport changes. Culling retains the full relief height.
 const projection=mapProjection(true)
-const rangeArtwork=overviewRanges.flatMap(({id,name,peaks})=>{
+const rangeArtwork=overviewRanges.flatMap(({id,name,peaks,relief})=>{
   if(!peaks.length)return []
   const points=peaks.map(p=>{
-    const [x,y]=projection.point(p.position),w=15*p.scale,h=22*p.scale
-    return {position:p.position,w,h,base:`M${x-w},${y+2}L${x-2},${y-h}L${x+w},${y+2}Z`,shade:`M${x-2},${y-h}L${x+w},${y+2}L${x+1},${y+1}Z`}
+    const [x,y]=projection.point(p.position),w=15*p.scale,h=(relief==='hill'?12:22)*p.scale
+    return {position:p.position,w,h,base:relief==='hill'?`M${x-w},${y+2}Q${x-2},${y-h*1.5} ${x+w},${y+2}Z`:`M${x-w},${y+2}L${x-2},${y-h}L${x+w},${y+2}Z`,shade:relief==='hill'?`M${x-1},${y+1-h*.75}Q${x+w*.45},${y+1-h*.3} ${x+w},${y+2}L${x+1},${y+1}Z`:`M${x-2},${y-h}L${x+w},${y+2}L${x+1},${y+1}Z`}
   })
   const bounds={left:Math.min(...points.map(p=>p.position[0]-p.w)),right:Math.max(...points.map(p=>p.position[0]+p.w)),
     top:Math.min(...points.map(p=>p.position[1]-p.h/projection.yScale)),bottom:Math.max(...points.map(p=>p.position[1]+2))}

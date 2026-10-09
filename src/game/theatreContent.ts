@@ -85,7 +85,7 @@ const regions: readonly Region[] = [
   ['parthia','Parthia',[
     ['hecatompylos','Hecatompylos',[54.0,35.9]],['nisa','Nisa',[58.3,38.0]],['eastern-parthia','Eastern Parthia',[57.1,36.8]]]],
   ['persis','Persis',[
-    ['persepolis','Persepolis',[52.9,29.95]],['pasargadae','Pasargadae',[53.2,30.2]],['western-persis','Western Persis',[51.35,30.25]],['persian-coast','Persian Coast',[52.7,27.8]],['central-plateau','Central Plateau',[53.8,32.1]]]],
+    ['persepolis','Persepolis',[52.9,29.95]],['pasargadae','Pasargadae',[54.35,31.10]],['western-persis','Western Persis',[51.35,30.25]],['persian-coast','Persian Coast',[52.7,27.8]],['western-foothills','Western Foothills',[51.65,31.55]]]],
   ['carmania','Carmania',[
     ['karmana','Karmana',[57.1,30.3]],['carmanian-uplands','Carmanian Uplands',[55.9,29.0]],['carmanian-coast','Carmanian Coast',[57.2,27.2]]]],
   ['drangiana','Drangiana',[

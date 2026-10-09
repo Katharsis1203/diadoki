@@ -1,8 +1,11 @@
+import { mountainRegionLand } from './mountainGeometry.ts'
+import { polygonLandPath } from './mountainTerrain.ts'
+import { stateLandPaths, provinceLandPaths } from './mountainTerrain.ts'
+import { theatreDistrictById } from './theatreGeography.ts'
 import { project } from './data.ts'
-import { provinceOutlines } from './stateGeometry.ts'
 import { groundGeometry } from './groundGeometry.ts'
-import { terrainGroundBrushes, coreGroundBrushes, terrainWashColors } from './groundBrushes.ts'
-import { earthPatches, surfaceColors } from './groundSurface.ts'
+import { terrainGroundBrushes, coreGroundBrushes, terrainWashColors, terrainWashStyles, terrainWashKey, riverGroundStyle } from './groundBrushes.ts'
+import { earthPatches, surfaceColors, surfaceOpacity } from './groundSurface.ts'
 import { coreRiverFootprints } from './terrainBackbone.ts'
 import { boundsIntersect } from './mapViewport.ts'
 import { GROUND_TILE_BLEED } from './groundTiles.ts'
@@ -10,14 +13,13 @@ import type { GroundTile } from './groundTiles.ts'
 import type { LabelBox } from './mapView.ts'
 
 // One source of colour/lighting for runtime fallback and generated artwork.
-let babylonClip:Path2D|undefined
+const groundClips=new Map<string,Path2D>()
 let rivers:({path:Path2D}&typeof coreRiverFootprints[number])[]|undefined
 export function paintGroundCanvas(tile:GroundTile){
   const canvas=document.createElement('canvas'),pixels=Math.round(tile.size*tile.resolution)+2*GROUND_TILE_BLEED
   canvas.width=canvas.height=pixels
   const ctx=canvas.getContext('2d')
   if(!ctx)throw new Error('Canvas 2D unavailable')
-  babylonClip??=new Path2D(`M${provinceOutlines.babylonia.map(p=>p.join(',')).join('L')}Z`)
   rivers??=coreRiverFootprints.map(r=>({...r,path:new Path2D(r.river.path)}))
   const bleed=GROUND_TILE_BLEED/tile.resolution
   const box:LabelBox={left:tile.x-bleed,right:tile.x+tile.size+bleed,top:tile.y-bleed,bottom:tile.y+tile.size+bleed}
@@ -45,22 +47,30 @@ export function paintGroundCanvas(tile:GroundTile){
   if(tile.shading!==false){
     for(const {feature,marks,bounds} of terrainGroundBrushes){
       if(!boundsIntersect(bounds,box))continue
-      const opacity=['fertile','marsh'].includes(feature.type)?.32:.19
-      ctx.save();if(feature.provinceId)ctx.clip(babylonClip)
-      for(const p of marks)ellipse(p.x,p.y,p.rx,p.ry,p.rotation,terrainWashColors[feature.type as keyof typeof terrainWashColors],[[0,opacity],[.35,opacity*.65],[.7,opacity*.18],[1,0]],feature.opacity*strength)
+      const {color,opacity}=terrainWashStyles[terrainWashKey(feature)]
+      ctx.save()
+      const clipId=feature.terrainRegionId?`terrain:${feature.terrainRegionId}`:feature.provinceId?`province:${feature.provinceId}`:feature.stateId?`state:${feature.stateId}`:undefined
+      if(clipId){
+        let clip=groundClips.get(clipId)
+        if(!clip){
+          const path=feature.terrainRegionId?polygonLandPath(mountainRegionLand[feature.terrainRegionId]):feature.provinceId?provinceLandPaths[feature.provinceId]:stateLandPaths[feature.stateId!]??theatreDistrictById.get(feature.stateId!)?.path
+          if(!path)throw new Error(`Unknown terrain clip ${clipId}`)
+          clip=new Path2D(path);groundClips.set(clipId,clip)
+        }
+        ctx.clip(clip,'evenodd')
+      }
+      for(const p of marks)ellipse(p.x,p.y,p.rx,p.ry,p.rotation,color,[[0,opacity],[.35,opacity*.65],[.7,opacity*.18],[1,0]],feature.opacity*strength)
       ctx.restore()
     }
     for(const ridge of coreGroundBrushes.filter(r=>boundsIntersect(r.bounds,box)))for(const p of ridge.marks)ellipse(p.x,p.y,p.rx,p.ry,0,terrainWashColors.mountain,[[0,.25],[.35,.25*.65],[.7,.25*.18],[1,0]],.9)
-    for(const p of earthPatches){const [x,y]=project(p.at);ellipse(x,y,p.rx,p.ry,p.angle,surfaceColors[p.color],[[0,.22],[.4,.12],[.75,.035],[1,0]])}
+    for(const p of earthPatches){const [x,y]=project(p.at),opacity=surfaceOpacity[p.color];ellipse(x,y,p.rx,p.ry,p.angle,surfaceColors[p.color],[[0,opacity],[.4,opacity*6/11],[.75,opacity*7/44],[1,0]])}
     for(const {river,path,bounds} of rivers){
-      const margin=9
+      const style=riverGroundStyle(river),margin=style.width
       if(!boundsIntersect({left:bounds.left-margin,right:bounds.right+margin,top:bounds.top-margin,bottom:bounds.bottom+margin},box))continue
-      ctx.save();ctx.strokeStyle='#638553'
-      if(river.source==='existing'){
-        ctx.filter=`blur(${2*tile.resolution}px)`;ctx.lineWidth=13;ctx.globalAlpha=.13;ctx.stroke(path)
-      }else{
-        ctx.lineWidth=9;ctx.globalAlpha=.055;ctx.stroke(path);ctx.lineWidth=4.5;ctx.globalAlpha=.075;ctx.stroke(path)
-      }
+      ctx.save();ctx.strokeStyle=style.color
+      if(style.blur)ctx.filter=`blur(${style.blur*tile.resolution}px)`
+      ctx.lineWidth=style.width;ctx.globalAlpha=style.opacity;ctx.stroke(path)
+      if(style.innerWidth){ctx.lineWidth=style.innerWidth;ctx.globalAlpha=style.innerOpacity;ctx.stroke(path)}
       ctx.restore()
     }
   }

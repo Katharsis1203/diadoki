@@ -1,3 +1,7 @@
+import { inMountainPass } from './mountainTerrain.ts'
+import { persisScenery, inPersisValley } from './persisScenery.ts'
+import { assyriaScenery } from './assyriaScenery.ts'
+import { susaScenery } from './susaScenery.ts'
 import { project } from './data.ts'
 import { DEFAULT_MAP_SETTINGS } from './mapSettings.ts'
 import type { MapSettings } from './mapSettings.ts'
@@ -11,7 +15,7 @@ import { settlementAppearance } from './settlementAppearance.ts'
 import type { SettlementTier } from './settlementAppearance.ts'
 
 export type { SettlementTier } from './settlementAppearance.ts'
-export type SceneryAsset = 'mountain' | 'hill' | 'trees' | 'reeds' | 'settlement'
+export type SceneryAsset = 'mountain' | 'hill' | 'trees' | 'grove' | 'reeds' | 'rocks' | 'scrub' | 'settlement'
 type Placement = {
   id: string
   asset: SceneryAsset
@@ -20,18 +24,19 @@ type Placement = {
   variant?: 0 | 1 | 2
   detail?: boolean
   rangeId?: string
+  scope?: 'theatre'
   settlementId?: string
 }
 // Visual designation only: capital status is independent of architectural tier
 // and never consulted by combat, income, ownership or province rules.
 export type SceneryPlacement = Placement & (
-  { asset: 'settlement'; stateId: string; name: string; tier: SettlementTier; isCapital: boolean }
+  { asset: 'settlement'; stateId: string; name: string; tier: SettlementTier; isCapital: boolean; style?: 'susian' | 'assyrian' | 'persian' | 'pasargadan' }
   | { asset: Exclude<SceneryAsset,'settlement'> }
 )
 export const SCENERY_SCALE = 1
-const assetHeight = {city:28,fortress:28,village:16,homestead:12,mountain:36,hill:21,trees:34,reeds:24}
-// Footprint for the Babylon-only settlement/vegetation prototype. Major relief
-// now uses the shared campaign backbone; other local engraving stays intact.
+const assetHeight = {city:28,fortress:28,village:16,homestead:12,mountain:36,hill:21,trees:34,grove:32,reeds:24,rocks:10,scrub:8}
+// Babylon scenery footprint; Susa has a separate sparse lowland patch.
+// Major relief uses the shared campaign backbone.
 export const SCENERY_ZONE = { left: 530, top: 300, right: 755, bottom: 574 }
 export const inSceneryZone = ([x,y]: MapPoint) => x>=SCENERY_ZONE.left && x<=SCENERY_ZONE.right && y>=SCENERY_ZONE.top && y<=SCENERY_ZONE.bottom
 
@@ -42,13 +47,11 @@ const primaryCentre = (centre: Omit<Extract<SceneryPlacement,{asset:'settlement'
 // Authored anchor positions, converted once to the same map coordinates as the
 // state mesh. No random sampling, camera-dependent placement or save mutation.
 export const babyloniaScenery: readonly SceneryPlacement[] = ([
-  // One primary centre for each test-province state. Borsippa and Larsa remain
+  // One primary centre for each test-province state. Borsippa, Uruk, Larsa and Ur remain
   // secondary map references; surrounding provinces retain their existing dots.
   primaryCentre({id:'babylon-city-art',stateId:'babylon',name:'Babylon',isCapital:true,position:project([44.42,32.54]),variant:0,settlementId:'babylon-city'}),
   primaryCentre({id:'sippar-centre',stateId:'sippar',name:'Sippar',isCapital:false,position:project([44.26,33.06]),variant:0,settlementId:'sippar-city'}),
   primaryCentre({id:'nippur-centre',stateId:'nippur',name:'Nippur',isCapital:false,position:project([45.23,32.13]),variant:1,settlementId:'nippur-city'}),
-  primaryCentre({id:'uruk-centre',stateId:'uruk',name:'Uruk',isCapital:false,position:project([45.64,31.32]),variant:0,settlementId:'uruk-city'}),
-  primaryCentre({id:'ur-centre',stateId:'ur',name:'Ur',isCapital:false,position:project([46.1,30.96]),variant:1,settlementId:'ur-city'}),
   primaryCentre({id:'diyala-centre',stateId:'diyala',name:'Diyala',isCapital:false,position:project([45.2,33.5]),variant:0}),
   primaryCentre({id:'chaldaea-centre',stateId:'chaldaea',name:'Chaldaea',isCapital:false,position:project([44.25,30.93]),variant:1}),
   // Palm orchards stay small and infrequent, beside cultivated water districts.
@@ -91,11 +94,12 @@ export const babyloniaScenery: readonly SceneryPlacement[] = ([
 ] satisfies SceneryPlacement[]).toSorted((a,b)=>a.position[1]-b.position[1] || a.id.localeCompare(b.id))
 
 export type SceneryObject = { placement: SceneryPlacement; x: number; y: number; size: number; opacity: number; box: LabelBox }
-// Extend relief across the campaign without extending the Babylon-only
-// settlement/vegetation prototype. One depth order serves every province.
-export const campaignScenery: readonly SceneryPlacement[] = [...babyloniaScenery,
+// Shared depth ordering for campaign relief and developed local settlements.
+export const campaignScenery: readonly SceneryPlacement[] = [...babyloniaScenery, ...susaScenery, ...assyriaScenery, ...persisScenery,
+  {id:'western-valley-centre',asset:'settlement' as const,stateId:'western-valley',name:'Western Valley',settlementId:'western-valley-village',isCapital:false,position:project([48.15,33.85]),...settlementAppearance(0,false)},
   ...backbonePeaks.flatMap((peak,i)=>{
-    const {id,rangeId,position,scale,variant,normal}=peak
+    const {id,rangeId,position,scale,variant,normal,asset}=peak
+    if(asset==='hill')return [{id,rangeId,asset,position,scale,variant}]
     const offset=(distance:number):MapPoint=>[position[0]+normal[0]*distance,position[1]+normal[1]*distance]
     const shoulder=offset(-4),foot=offset(6)
     return [
@@ -106,12 +110,15 @@ export const campaignScenery: readonly SceneryPlacement[] = [...babyloniaScenery
   }),
 ].toSorted((a,b)=>a.position[1]-b.position[1]||a.id.localeCompare(b.id))
 
-export function sceneryObjects(projection: MapProjection, zoom: number, scale: number, level: MapLevel, states?: readonly TerritoryState[],settings:MapSettings=DEFAULT_MAP_SETTINGS): SceneryObject[] {
+export function sceneryObjects(projection: MapProjection, zoom: number, scale: number, level: MapLevel, states?: readonly TerritoryState[],settings:MapSettings=DEFAULT_MAP_SETTINGS,theatreEnabled=true): SceneryObject[] {
   if (level==='dominion') return []
   const regional=Math.max(0,Math.min(1,(zoom-1.15)/.65))
   const local=level==='state'?Math.max(0,Math.min(1,(zoom-1.8)/1.0)):0
   return campaignScenery.flatMap(authored=>{
-    if(authored.asset==='settlement'?!settings.settlements:['mountain','hill'].includes(authored.asset)?!settings.mountains:!settings.vegetation)return []
+    if(['mountain','hill'].includes(authored.asset)&&inMountainPass(authored.position))return []
+    if(authored.scope==='theatre'&&!theatreEnabled)return []
+    if(theatreEnabled&&['mountain','hill'].includes(authored.asset)&&inPersisValley(authored.position))return []
+    if(authored.asset==='settlement'?!settings.settlements:['mountain','hill','rocks'].includes(authored.asset)?!settings.mountains:!settings.vegetation)return []
     const state=authored.asset==='settlement'?states?.find(s=>s.id===authored.stateId):undefined
     const placement: SceneryPlacement=authored.asset==='settlement'&&state ?
       {...authored,...settlementAppearance(state.buildings.market,authored.isCapital)} : authored
@@ -119,7 +126,7 @@ export function sceneryObjects(projection: MapProjection, zoom: number, scale: n
     if (!opacity) return []
     const [x,y]=projection.point(placement.position)
     // Assets grow naturally with zoom, with a screen cap for readability.
-    const cap=placement.asset==='settlement'?(placement.isCapital?76:placement.tier==='city'?62:placement.tier==='fortress'?46:placement.tier==='village'?30:22):placement.rangeId?128:placement.asset==='trees'?34:56
+    const cap=placement.asset==='settlement'?(placement.isCapital?76:placement.tier==='city'?62:placement.tier==='fortress'?46:placement.tier==='village'?30:22):placement.rangeId?128:placement.asset==='rocks'?32:placement.asset==='scrub'?24:['trees','grove'].includes(placement.asset)?34:56
     // Ridge art scales with the ground and keeps its size variation. A generous
     // close-view cap avoids normalizing every peak to the same screen width.
     const size=Math.min(placement.scale*SCENERY_SCALE*(placement.rangeId ? .52 : 1),cap/(48*scale))

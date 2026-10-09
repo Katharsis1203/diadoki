@@ -48,7 +48,7 @@ test('major mountain systems share ground axes, keep water valleys open and leav
   }
   for(const original of babyloniaScenery)assert.equal(campaignScenery.find(p=>p.id===original.id),original)
   assert.equal(new Set(campaignScenery.map(p=>p.id)).size,campaignScenery.length)
-  assert.equal(campaignScenery.filter(p=>p.asset==='settlement').length,7)
+  assert.equal(campaignScenery.filter(p=>p.asset==='settlement'&&babyloniaScenery.some(original=>original.id===p.id)).length,5)
 })
 
 test('Italy-to-Ganges context preserves coasts and islands while excluded outer regions remain bare',()=>{
@@ -60,8 +60,8 @@ test('Italy-to-Ganges context preserves coasts and islands while excluded outer 
     assert.ok(lon<=WORLD_EXTENT.east)
   }
   const game=createInitialState()
-  assert.equal(game.states.length,48)
-  assert.equal(game.provinces.length,10)
+  assert.equal(game.states.length,50)
+  assert.equal(game.provinces.length,11)
   assert.equal(worldRegionAt(...project([13.7,37.2]))?.id,'sicily')
   assert.equal(worldRegionAt(...project([83.5,25.3]))?.id,'ganges')
 })

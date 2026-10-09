@@ -1,3 +1,5 @@
+import { stateLand } from './mountainGeometry.ts'
+import { inLand } from './mountainTerrain.ts'
 import { mapVertices, stateRings } from './stateGeometry.ts'
 
 // Geometry is immutable campaign content. Prepare coordinates, extents and ink
@@ -46,15 +48,10 @@ export function provinceBorderPath(stateIds: readonly string[]) {
 }
 
 export function pointInState(point: readonly [number, number], id: string) {
-  const { points: ring, left, right, top, bottom } = districts[id]
+  const { left, right, top, bottom } = districts[id]
   const [x, y] = point
   if (x < left || x > right || y < top || y > bottom) return false
-  let inside = false
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const a = ring[i], b = ring[j]
-    if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside
-  }
-  return inside
+  return inLand(point,stateLand[id])
 }
 
 export function territoryAt<T extends { id: string; provinceId: string }>(point: readonly [number, number], states: readonly T[]) {

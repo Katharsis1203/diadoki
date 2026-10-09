@@ -1,0 +1,34 @@
+{
+  "url": "http://127.0.0.1:5175",
+  "viewport": "1440×900",
+  "samples": 3,
+  "delayMs": 150,
+  "clock": "After .prepared-ground mounts; excludes app startup",
+  "records": [
+    {
+      "sample": 0,
+      "visibleImageMs": 446.10000014305115,
+      "renderedDetailMs": 651.3000001907349,
+      "maxActive": 3,
+      "requested": 12
+    },
+    {
+      "sample": 1,
+      "visibleImageMs": 427.59999990463257,
+      "renderedDetailMs": 622.7000000476837,
+      "maxActive": 3,
+      "requested": 12
+    },
+    {
+      "sample": 2,
+      "visibleImageMs": 417.30000019073486,
+      "renderedDetailMs": 606.6000001430511,
+      "maxActive": 3,
+      "requested": 12
+    }
+  ],
+  "summary": {
+    "visibleImageMs": 427.59999990463257,
+    "renderedDetailMs": 622.7000000476837
+  }
+}
