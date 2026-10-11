@@ -38,21 +38,29 @@ try{
     await page.getByRole('button',{name:'New game',exact:true}).click()
     await page.waitForTimeout(650)
     if(!url.includes('ground=vector'))await page.waitForFunction(()=>{const map=document.querySelector('.campaign-map');return map.dataset.groundRenderer==='prepared'?map.querySelector('.prepared-ground')?.dataset.ready==='true':map.dataset.groundRenderer==='cached'})
+    if(new URL(url).searchParams.get('renderer')==='pixi')await page.waitForFunction(()=>{
+      const surfaces=[...document.querySelectorAll('[data-pixi-canvas]')]
+      return surfaces.length>0&&surfaces.every(e=>e.dataset.ready==='true')
+    })
     if(mode.startsWith('pan')){await page.mouse.move(700,500);await page.mouse.down()}
     const before=await metrics(),start=performance.now()
-    const {renderers,frameIntervals}=await page.evaluate(async({mode,events})=>{
-      const svg=document.querySelector('.campaign-map'),renderers={},frameIntervals=[]
+    const {renderers,pixiFrames,frameIntervals}=await page.evaluate(async({mode,events})=>{
+      const svg=document.querySelector('.campaign-map'),renderers={},pixiFrames={},frameIntervals=[]
       let previous=performance.now()
       for(let i=0;i<events;i++){
         if(mode.startsWith('pan'))svg.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:1,buttons:1,clientX:700+Math.sin(i/14)*(mode==='pan-wide'?450:70),clientY:500+Math.cos(i/14)*(mode==='pan-wide'?220:45)}))
         else if(mode==='zoom')svg.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,clientX:700,clientY:500,deltaY:i%2?8:-8}))
-        else document.querySelector(`.territory-state[data-state=${['sippar','nippur','uruk','ur','diyala','chaldaea'][i%6]}]`).dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))
+        else document.querySelector(`.territory-state[data-state=${['sippar','nippur','babylon','karun','diyala','chaldaea'][i%6]}]`).dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))
         await new Promise(requestAnimationFrame)
         const current=performance.now();frameIntervals.push(current-previous);previous=current
         renderers[svg.dataset.groundRenderer]=(renderers[svg.dataset.groundRenderer]??0)+1
+        for(const surface of document.querySelectorAll('[data-pixi-canvas]')){
+          const key=`${surface.dataset.pixiCanvas}:${surface.dataset.ready==='true'?'gpu':'svg-fallback'}`
+          pixiFrames[key]=(pixiFrames[key]??0)+1
+        }
       }
       await new Promise(requestAnimationFrame)
-      return {renderers,frameIntervals}
+      return {renderers,pixiFrames,frameIntervals}
     },{mode,events})
     const after=await metrics()
     let releaseTaskMs=0
@@ -63,7 +71,7 @@ try{
     }
     records.push({sample,mode,scriptMs:(after.ScriptDuration-before.ScriptDuration)*1000,
       taskMs:(after.TaskDuration-before.TaskDuration)*1000,layoutMs:(after.LayoutDuration-before.LayoutDuration)*1000,
-      styleMs:(after.RecalcStyleDuration-before.RecalcStyleDuration)*1000,wallMs:performance.now()-start,renderers,releaseTaskMs,
+      styleMs:(after.RecalcStyleDuration-before.RecalcStyleDuration)*1000,wallMs:performance.now()-start,renderers,pixiFrames,releaseTaskMs,
       frameMedianMs:median(frameIntervals),frameP95Ms:frameIntervals.toSorted((a,b)=>a-b)[Math.min(frameIntervals.length-1,Math.floor(frameIntervals.length*.95))],
       svgNodes:await page.locator('.campaign-map *').count()})
     console.error(`Completed ${sample+1}/${samples}: ${mode}`)

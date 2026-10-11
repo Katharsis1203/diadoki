@@ -7,9 +7,9 @@ import { pointBounds } from './mapViewport.ts'
 export const terrainWashColors = { mountain:'#786956',hill:'#998258',desert:'#b98a41',steppe:'#92945c',forest:'#557443',palm:'#657e44',marsh:'#588e7d',fertile:'#5e8451',coastal:'#7d9656' }
 export const terrainWashStyles:Record<string,{color:string;opacity:number}>={
   ...Object.fromEntries(Object.entries(terrainWashColors).map(([id,color])=>[id,{color,opacity:['fertile','marsh'].includes(id)?.32:id==='mountain'?.25:.19}])),
-  irrigated:{color:'#548a45',opacity:.58},
-  susian:{color:'#83956a',opacity:.39},
-  'persis-gardens':{color:'#6c8d50',opacity:.48},
+  irrigated:{color:'#839465',opacity:.30},
+  susian:{color:'#929d77',opacity:.25},
+  'persis-gardens':{color:'#8b9b6c',opacity:.32},
 }
 export function terrainWashKey(feature:TerrainFeature):string{
   if(feature.type!=='fertile')return feature.type
@@ -24,13 +24,13 @@ export function terrainWashKey(feature:TerrainFeature):string{
 // remain narrower and more muted against dry foothill/interior ground.
 export function riverGroundStyle(river:{id:string;source:string}){
   if(['tigris','euphrates','shatt-al-arab'].includes(river.id))
-    return {color:'#568b49',width:16,opacity:.23,innerWidth:7,innerOpacity:.10,blur:2}
+    return {color:'#87976c',width:16,opacity:.10,innerWidth:7,innerOpacity:.045,blur:2}
   if(['karkheh','karun'].includes(river.id))
-    return {color:'#85956d',width:10,opacity:.10,innerWidth:4.5,innerOpacity:.075,blur:0}
+    return {color:'#959f7a',width:10,opacity:.065,innerWidth:4.5,innerOpacity:.045,blur:0}
   if(river.id==='qezel-owzan')
     return {color:'#a09b70',width:7,opacity:.055,innerWidth:3,innerOpacity:.04,blur:0}
-  return {color:'#638553',width:river.source==='existing'?13:9,opacity:river.source==='existing'?.13:.055,
-    innerWidth:river.source==='existing'?0:4.5,innerOpacity:.075,blur:river.source==='existing'?2:0}
+  return {color:'#8a9870',width:river.source==='existing'?13:9,opacity:river.source==='existing'?.075:.04,
+    innerWidth:river.source==='existing'?0:4.5,innerOpacity:.045,blur:river.source==='existing'?2:0}
 }
 
 export function corridorWash(feature: TerrainFeature) {

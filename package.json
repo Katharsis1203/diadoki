@@ -25,9 +25,11 @@
     "check:browser-persis": "node scripts/check-persis-development.mjs",
     "check:browser-media": "node scripts/check-media-geography.mjs",
     "check:browser-mountains": "node --experimental-strip-types scripts/check-mountain-terrain.mjs",
-    "check:browser-babylonia": "node scripts/check-babylonia-development.mjs"
+    "check:browser-babylonia": "node scripts/check-babylonia-development.mjs",
+    "check:browser-pixi": "node scripts/check-pixi-renderer.mjs"
   },
   "dependencies": {
+    "pixi.js": "^8.22.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

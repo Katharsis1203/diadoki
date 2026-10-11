@@ -1,0 +1,82 @@
+{
+  "url": "http://127.0.0.1:5175/?renderer=pixi&pixiLayers=scenery",
+  "viewport": "1440×900",
+  "samples": 3,
+  "eventsPerScenario": 120,
+  "preset": "full",
+  "omitted": [],
+  "modes": [
+    "zoom"
+  ],
+  "records": [
+    {
+      "sample": 0,
+      "mode": "zoom",
+      "scriptMs": 1245.255,
+      "taskMs": 10678.806,
+      "layoutMs": 325.849,
+      "styleMs": 171.316,
+      "wallMs": 13975.951694000001,
+      "renderers": {
+        "prepared": 120
+      },
+      "pixiFrames": {
+        "scenery:gpu": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 112.69999998807907,
+      "frameP95Ms": 137.09999999403954,
+      "svgNodes": 3091
+    },
+    {
+      "sample": 1,
+      "mode": "zoom",
+      "scriptMs": 930.2049999999999,
+      "taskMs": 9434.527000000002,
+      "layoutMs": 299.05,
+      "styleMs": 155.388,
+      "wallMs": 13909.490056000002,
+      "renderers": {
+        "prepared": 120
+      },
+      "pixiFrames": {
+        "scenery:gpu": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 114.79999999701977,
+      "frameP95Ms": 136.70000000298023,
+      "svgNodes": 3037
+    },
+    {
+      "sample": 2,
+      "mode": "zoom",
+      "scriptMs": 976.6400000000002,
+      "taskMs": 9286.753,
+      "layoutMs": 299.37800000000004,
+      "styleMs": 151.947,
+      "wallMs": 13937.267348000001,
+      "renderers": {
+        "prepared": 120
+      },
+      "pixiFrames": {
+        "scenery:gpu": 120
+      },
+      "releaseTaskMs": 0,
+      "frameMedianMs": 115.29999999701977,
+      "frameP95Ms": 134.79999999701977,
+      "svgNodes": 3037
+    }
+  ],
+  "summary": {
+    "zoom": {
+      "scriptMs": 976.6400000000002,
+      "taskMs": 9434.527000000002,
+      "layoutMs": 299.37800000000004,
+      "styleMs": 155.388,
+      "wallMs": 13937.267348000001,
+      "releaseTaskMs": 0,
+      "frameMedianMs": 114.79999999701977,
+      "frameP95Ms": 136.70000000298023
+    }
+  }
+}

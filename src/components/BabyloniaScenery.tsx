@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { scenerySymbol } from './scenerySymbol'
 import type { SceneryObject } from '../game/babyloniaScenery'
 
 // All symbols share a bottom-centre origin (0,0). Ink, lit upper-left faces
@@ -8,8 +9,15 @@ export function ScenerySymbols() {
     ['M-24 0L-18 -14L-12 -8L-7 -36L6 -15L13 -22L24 0Z','M-7 -36L-5 -16L6 -15L13 -22L24 0Z','M-11 -28L-7 -36L-2 -27L-6 -29Z'],
     ['M-24 0L-16 -20L-9 -13L-2 -34L9 -14L15 -18L24 0Z','M-2 -34L2 -15L9 -14L15 -18L24 0Z','M-6 -26L-2 -34L4 -25L-1 -27Z'],
     ['M-24 0L-19 -12L-12 -26L-2 -15L8 -31L16 -14L23 0Z','M8 -31L9 -13L23 0L1 0Z','M4 -24L8 -31L12 -23L8 -25Z'],
+    // Broad paired summits and layered shoulders keep the same footprint,
+    // palette and upper-left lighting as the original three silhouettes.
+    ['M-24 0L-20 -10L-15 -8L-9 -29L-2 -20L5 -32L11 -21L16 -24L24 0Z','M5 -32L6 -14L11 -21L16 -24L24 0L1 0L-2 -20ZM-9 -29L-8 -12L-2 -20L1 0L-1 0L-7 -9Z','M-12 -22L-9 -29L-6 -22L-9 -24ZM2 -25L5 -32L8 -25L5 -27Z'],
+    ['M-24 0L-21 -13L-14 -18L-10 -12L-3 -35L4 -25L9 -27L15 -12L20 -15L24 0Z','M-3 -35L0 -15L4 -25L9 -27L15 -12L20 -15L24 0L7 0L2 -9ZM-14 -18L-12 -5L-5 0L-10 -12Z','M-7 -26L-3 -35L2 -28L-2 -29Z'],
+    ['M-24 0L-20 -12L-14 -9L-8 -25L-2 -17L4 -27L11 -15L17 -20L24 0Z','M4 -27L6 -9L11 -15L17 -20L24 0L4 0L-2 -17ZM-8 -25L-6 -8L-1 0L-2 -17Z','M-11 -19L-8 -25L-5 -19L-8 -21ZM1 -21L4 -27L7 -21L4 -23Z'],
   ]
-  const hills=['M-23 0Q-17 -19 -6 -20Q6 -22 23 0Z','M-24 0Q-12 -27 1 -18Q11 -13 23 0Z','M-23 0Q-14 -15 -4 -12Q7 -24 23 0Z']
+  const hills=['M-23 0Q-17 -19 -6 -20Q6 -22 23 0Z','M-24 0Q-12 -27 1 -18Q11 -13 23 0Z','M-23 0Q-14 -15 -4 -12Q7 -24 23 0Z',
+    'M-23 0L-18 -8L-12 -17L-5 -12L2 -19L10 -11L15 -12L23 0Z',
+    'M-24 0L-18 -11L-11 -8L-3 -21L5 -15L9 -17L16 -6L23 0Z']
   return <>
     {[0,1].map(i=><symbol key={`rocks-${i}`} id={`scenery-rocks-${i}`} viewBox="-24 -40 48 40">
       <path d={i===0?'M-21 0L-18 -5L-11 -7L-5 -3L-6 0ZM-3 0L-1 -8L6 -10L13 -5L12 0ZM14 0L16 -4L20 -5L24 -1V0Z':'M-23 0L-19 -3L-14 -4L-10 0ZM-8 0L-6 -6L1 -9L8 -5L9 0ZM11 0L13 -4L20 -6L23 -2V0Z'} fill="#b9a685" stroke="#817255" strokeWidth=".85" strokeLinejoin="round"/>
@@ -73,12 +81,12 @@ export function ScenerySymbols() {
     {mountainPeaks.map(([outline,shade,summit],i)=><symbol key={`mountain-${i}`} id={`scenery-mountain-${i}`} viewBox="-24 -40 48 40">
       <path d={outline} fill="#b49c7b" stroke="#655642" strokeWidth="1.2" strokeLinejoin="round"/>
       <path d={shade} fill="#786654" opacity=".88"/><path d={summit} fill="#e0cfad"/>
-      <path d="M-17 -2l5 -7m6 5l3 -7m11 8l-3 -5" stroke="#685644" strokeWidth=".65" fill="none" opacity=".6"/>
+      <path d={i<3?'M-17 -2l5 -7m6 5l3 -7m11 8l-3 -5':i===3?'M-19 -2l4 -5m4 4l2 -7m11 6l3 -5m6 7l-3 -8':i===4?'M-19 -3l5 -6m9 7l2 -9m11 7l-3 -5m11 7l-3 -6':'M-19 -2l3 -5m6 5l2 -7m11 6l-2 -6m12 7l-4 -6'} stroke="#685644" strokeWidth=".65" fill="none" opacity=".6"/>
     </symbol>)}
     {hills.map((outline,i)=><symbol key={`hill-${i}`} id={`scenery-hill-${i}`} viewBox="-24 -40 48 40">
       <path d={outline} fill="#b49b70" stroke="#776444" strokeWidth=".8"/>
-      <path d="M-18 -1Q-13 -16 -5 -17Q-1 -11 2 0Z" fill="#dac99b" opacity=".75"/>
-      <path d="M3 -11Q11 -9 19 -1" stroke="#8d734d" fill="none" strokeWidth="1"/>
+      <path d={i<3?'M-18 -1Q-13 -16 -5 -17Q-1 -11 2 0Z':i===3?'M-21 0L-12 -17L-10 -7L-3 0Z':'M-22 0L-18 -11L-11 -8L-15 0ZM-9 0L-3 -21L-2 -9L4 0Z'} fill="#dac99b" opacity=".75"/>
+      <path d={i<3?'M3 -11Q11 -9 19 -1':i===3?'M2 -19L5 -6L12 0M-5 -12L-2 -3':'M5 -15L7 -5L15 0M9 -17L13 -7'} stroke="#8d734d" fill="none" strokeWidth="1"/>
     </symbol>)}
     {[0,1].map(i=><symbol key={`trees-${i}`} id={`scenery-trees-${i}`} viewBox="-24 -40 48 40">
       {(i===0?[[-12,-4,.7],[1,0,1],[14,-2,.64]]:[[11,-5,.77],[-9,0,.9],[1,-3,.63]]).map(([x,y,s],j)=><g key={j} transform={`translate(${x} ${y}) scale(${s})`}>
@@ -139,12 +147,13 @@ export function ScenerySymbols() {
   </>
 }
 
+
 const ScenerySprite = memo(function ScenerySprite({object}:{object:SceneryObject}) {
   const {placement:p,x,y,size,opacity} = object
   return <g data-scenery={p.id} data-asset={p.asset} data-state={p.asset==='settlement'?p.stateId:undefined} data-tier={p.asset==='settlement'?p.tier:undefined} data-capital={p.asset==='settlement'?p.isCapital:undefined} data-range={p.rangeId} data-ground-y={p.position[1]} data-anchor-x={x} data-anchor-y={y} opacity={opacity} transform={`translate(${x} ${y}) scale(${size})`}>
     {p.asset==='settlement'&&<title>{p.name}{p.isCapital?' · province capital':''}</title>}
     <ellipse className="scenery-shadow" cx="4" cy="1.5" rx={p.asset==='settlement'?23:19} ry="3.5"/>
-    <use href={p.asset==='settlement'&&p.style&&p.style!=='pasargadan'&&p.tier==='city'?`#scenery-${p.style}-city`:p.asset==='settlement'&&p.style==='pasargadan'&&p.tier==='village'?'#scenery-pasargadan-village':`#scenery-${p.asset==='settlement'?p.tier:p.asset}-${p.asset==='settlement'&&p.tier==='city'?(p.isCapital?0:1+(p.variant??0)%2):p.variant??0}`} x="-24" y="-40" width="48" height="40"/>
+    <use href={`#${scenerySymbol(object)}`} x="-24" y="-40" width="48" height="40"/>
   </g>
 })
 

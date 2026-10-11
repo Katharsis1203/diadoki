@@ -11,6 +11,7 @@ import { ownerName } from '../game/engine'
 import { mapBorderPaths, stateBounds } from '../game/geography'
 import { physicalGround, physicalLakes as lakes } from '../game/physicalLand'
 import { coreRiverFootprints } from '../game/terrainBackbone'
+import { regionalBaseGround, regionalBaseBlur } from '../game/groundSurface'
 import { riverGroundStyle } from '../game/groundBrushes'
 import type { MapProjection } from '../game/mapProjection'
 import { FactionSealSymbols } from './FactionSeals'
@@ -27,6 +28,7 @@ export const StaticMapDefinitions = memo(function StaticMapDefinitions({states}:
   return <>
       <linearGradient id="sea-wash" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="180" y2="700"><stop stopColor="#92bfb8" /><stop offset="1" stopColor="#6ba3ad" /></linearGradient>
       <linearGradient id="land-wash" gradientUnits="userSpaceOnUse" x1="200" y1="80" x2="600" y2="700"><stop stopColor="#e9d8b0" /><stop offset=".55" stopColor="#ddc393"/><stop offset="1" stopColor="#d5b37d" /></linearGradient>
+      <filter id="regional-base-soften" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB"><feGaussianBlur stdDeviation={regionalBaseBlur}/></filter>
       <pattern id="sea-engraving" width="90" height="42" patternUnits="userSpaceOnUse"><path d="M8 12q12 -4 24 0t24 0M45 33q12 -4 24 0t24 0" fill="none" stroke="#467e90" strokeOpacity=".065" strokeWidth=".6" /></pattern>
       <pattern id="highland-stipple" width="18" height="16" patternUnits="userSpaceOnUse"><path d="M2 4h2m6 7h2m3-9h1" stroke="#6e634e" strokeOpacity=".14" strokeWidth=".7"/></pattern>
       <clipPath id="mountain-border-clip"><path d={`M${mapBounds.left-20},${mapBounds.top-20}H${mapBounds.right+20}V${mapBounds.bottom+20}H${mapBounds.left-20}Z${mountainBorderPath}`} clipRule="evenodd"/></clipPath>
@@ -42,6 +44,7 @@ export const ContextLand = memo(function ContextLand({geometry}:{geometry?:Groun
     <g aria-hidden="true" className="map-context">
       <path className="map-coastal-shallows" d={coast} fillRule="evenodd"/>
       <path className="map-land context-land" d={fill} fillRule="evenodd" style={{stroke:'none'}}/>
+      <g clipPath="url(#physical-land)">{regionalBaseGround.map(region=><path key={region.id} data-regional-base={region.id} d={region.path} fill={region.color} fillOpacity={region.opacity} filter="url(#regional-base-soften)"/>)}</g>
       <path d={coast} fill="none" stroke="#9c9876" strokeWidth=".65" strokeLinejoin="round"/>
     </g>
   )

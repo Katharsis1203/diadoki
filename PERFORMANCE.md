@@ -295,3 +295,31 @@ The surface and SVG stay mounted, but zoom/resize/DPR changes temporarily remove
 `npm run check:browser-sharpness -- http://127.0.0.1:5175` compares close-zoom screenshots against the same scene with promotion disabled, at DPR 1 and 2, across repeated zoom cycles and rapid alternating wheel events. It uses decoded PNG pixels and tolerates small antialiasing differences. The earlier navigation reports predate this quality fix and should not be treated as measurements of the corrected zoom renderer.
 
 All 99 tests, lint and production build pass. The saved pre-fix DPR-1 screenshot differed from the native reference by 2.628 average RGB channel levels in the checked region. Native-reference screenshot differences after the fix averaged 0.000 channel levels at DPR 1 and 0.020–0.021 at DPR 2, including rapid wheel reversals. Desktop/mobile pan regressions pass with prepared, live Canvas and vector ground, and isolated loading/resource checks pass.
+
+## Opt-in PixiJS prototype — 9 October 2026
+
+The complete pre-prototype map was committed and pushed to `main` as `2d01c5303b09c84377f49a44880dcd693e5dc831`. The existing renderer remains the default. Open `/?renderer=pixi` to replace prepared ground and upright scenery with PixiJS 8.22 WebGL surfaces. `/?renderer=pixi&pixiLayers=scenery` isolates scenery; `pixiLayers=ground` isolates prepared ground. These are authoring comparisons, not campaign settings.
+
+The prototype uses the existing tile demand/cache, exact ground clips, scenery preparation, culling, opacity, development tiers and depth order. Symbol artwork is rasterized once per variant at six pixels per authored unit, with mipmaps for small sprites. GPU sprites persist across updates; draw requests follow scene changes rather than a continuous ticker. Canvas rectangles are laid out in screen pixels before applying the inverse SVG scale to avoid map-space CSS rounding at close zoom. SVG retains political geometry, selection, ownership, rivers, grain, fine detail, labels, seals and armies. Existing artwork remains available while textures load or if WebGL fails. Lost contexts stay on the SVG fallback.
+
+Each layer has a separate 64 MiB retained texture estimate with LRU eviction. Scenery estimates include mip levels. Decoded images, framebuffers, antialias buffers and transient loads add memory beyond that estimate and beyond the original ground cache. Two WebGL surfaces are embedded in SVG to preserve exact layer order; the native SVG fallback remains mounted. This is an intentionally reversible prototype, not a completed replacement of SVG or an optimized single-canvas compositor. Pixi and its renderer backend load only when the experimental renderer is requested.
+
+### Matched measurements
+
+The same production build ran sequentially with SVG, both Pixi layers, and scenery-only Pixi. Each scenario uses three samples of 120 inputs at 1440×900 with Full detail. Measurements include tile loading during navigation. The benchmark now uses the current Babylon/Karun districts instead of the retired Uruk/Ur identifiers and reports GPU versus SVG-fallback frames. All measured Pixi layer frames used WebGL.
+
+**This environment uses ANGLE/SwiftShader software WebGL, with hardware GPU compositing and rasterization disabled.** It cannot establish the benefit of hardware-accelerated Pixi on a user's machine. Hardware diagnostics are retained in [pixi-prototype-hardware.json](benchmarks/pixi-prototype-hardware.json).
+
+| Scenario | SVG browser task time | Both Pixi layers | SVG median frame interval | Pixi median frame interval |
+| --- | ---: | ---: | ---: | ---: |
+| Wide pan | 1.08 s | 3.41 s | 75.1 ms | 86.3 ms |
+| Zoom | 3.07 s | 21.03 s | 95.2 ms | 212.9 ms |
+| Selection | 1.83 s | 7.43 s | 72.5 ms | 101.0 ms |
+
+Scenery-only Pixi measured 9.43 s total zoom task time and a 114.8 ms median frame interval. It also regressed against SVG in this environment. Raw reports: [SVG](benchmarks/pixi-prototype-svg.json), [both Pixi layers](benchmarks/pixi-prototype-gpu.json), [scenery only](benchmarks/pixi-prototype-scenery.json). Browser task time is accumulated work over the sequence, not wall time or FPS. Frame intervals are observational timings from this headless session, not device-independent guarantees.
+
+These results do not justify switching the default renderer. Hardware browser profiling is required before adoption. A further experiment could use a standalone HTML canvas and sprite atlas to reduce SVG/WebGL composition and texture switching, or cache static scenery with native Canvas 2D. Neither alternative has been measured here.
+
+### Verification
+
+The 145 existing tests, lint and production build pass. Dedicated browser checks compare Pixi against the authored SVG fallback at province and close zoom on desktop DPR 1/2 and mobile DPR 2. Mean RGB channel differences are 0.48–0.63 out of 255; fewer than 0.09% of pixels differ by more than 20 levels. Checks also cover selection, pan, resize, texture estimates, actual context loss and unavailable WebGL. Persis settlement/development artwork and the default Susiana renderer retain their existing desktop/mobile behavior.

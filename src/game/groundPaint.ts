@@ -5,7 +5,7 @@ import { theatreDistrictById } from './theatreGeography.ts'
 import { project } from './data.ts'
 import { groundGeometry } from './groundGeometry.ts'
 import { terrainGroundBrushes, coreGroundBrushes, terrainWashColors, terrainWashStyles, terrainWashKey, riverGroundStyle } from './groundBrushes.ts'
-import { earthPatches, surfaceColors, surfaceOpacity } from './groundSurface.ts'
+import { earthPatches, surfaceColors, surfaceOpacity, regionalBaseGround, regionalBaseBlur } from './groundSurface.ts'
 import { coreRiverFootprints } from './terrainBackbone.ts'
 import { boundsIntersect } from './mapViewport.ts'
 import { GROUND_TILE_BLEED } from './groundTiles.ts'
@@ -34,6 +34,13 @@ export function paintGroundCanvas(tile:GroundTile){
   ctx.fillStyle=landWash
   ctx.fill(land,'evenodd');ctx.strokeStyle='#9c9876';ctx.lineWidth=.65;ctx.stroke(coast)
   ctx.save();ctx.clip(land,'evenodd')
+  // Regional bases remain visible with optional feature shading disabled.
+  ctx.save();ctx.filter=`blur(${regionalBaseBlur*tile.resolution}px)`
+  for(const region of regionalBaseGround){
+    ctx.fillStyle=region.color;ctx.globalAlpha=region.opacity
+    ctx.fill(new Path2D(region.path))
+  }
+  ctx.restore()
   const ellipse=(x:number,y:number,rx:number,ry:number,rotation:number,color:string,stops:readonly (readonly [number,number])[],opacity=1)=>{
     // Reject off-tile brushes before creating gradients.
     const radius=Math.max(rx,ry)

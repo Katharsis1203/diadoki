@@ -146,7 +146,8 @@ try{
     await page.close()
   }
   const core=await browser.newPage()
-  await core.goto(`${url.replace(/\/$/,'')}?provinces=core`)
+  const coreUrl=new URL(url);coreUrl.searchParams.set('provinces','core')
+  await core.goto(coreUrl.href)
   assert.equal(await core.locator('[data-draft-state]').count(),0)
   assert.equal(await core.locator('[data-scenery=persepolis-centre-art]').count(),0)
   await core.close()

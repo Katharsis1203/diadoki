@@ -28,6 +28,7 @@ import type { Camera, MapLevel } from '../game/mapView'
 import { panOverscan, panSceneCamera, panTranslation } from '../game/mapPan'
 import { TerrainLayer } from './TerrainLayer'
 import { BabyloniaScenery } from './BabyloniaScenery'
+import { PixiScenery } from './PixiScenery'
 import { BabyloniaSurface } from './BabyloniaSurface'
 import { CoreTerrainGround, OverviewRanges } from './CoreTerrain'
 import { ContextLand, IndependentMountains, MapBorders, OwnershipLayer, PhysicalFeatures, StateTerritories, StaticMapDefinitions, WaterLabels } from './MapLayers'
@@ -125,6 +126,8 @@ const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, 
     return () => map.removeEventListener('wheel', wheel)
   }, [])
   const projection = mapProjection(perspective)
+  const pixi=new URLSearchParams(window.location.search).get('renderer')==='pixi'
+  const pixiLayers=new URLSearchParams(window.location.search).get('pixiLayers')
   const theatreEnabled = new URLSearchParams(window.location.search).get('provinces')!=='core'
   const view=mapViewport({x:centreX,y:centreY,zoom},projection,scale,size)
   const projectedView={left:view.left,right:view.right,top:projection.point([0,view.top])[1],bottom:projection.point([0,view.bottom])[1]}
@@ -180,7 +183,7 @@ const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, 
     // Labels have their own ink halo above relief. Keep ridges connected rather
     // than removing a whole peak for every district caption.
     !(o.placement.rangeId?fixedSceneryObstacles:decorativeObstacles).some(box=>boxesOverlap(o.box,box))))
-  return <svg ref={svg} className={`campaign-map map-level-${level}`} data-ground-renderer={preparedShading?'prepared':ground.ready?'cached':ground.available.length?'partial-cache':ground.geometry?'vector-fallback':'vector'} data-level={level} data-perspective={perspective?'2.5d':'flat'} data-zoom={zoom.toFixed(3)}
+  return <svg ref={svg} className={`campaign-map map-level-${level}`} data-map-renderer={pixi?'pixi':'svg'} data-ground-renderer={preparedShading?'prepared':ground.ready?'cached':ground.available.length?'partial-cache':ground.geometry?'vector-fallback':'vector'} data-level={level} data-perspective={perspective?'2.5d':'flat'} data-zoom={zoom.toFixed(3)}
     style={{width:size.width,height:size.height,left:-overscan,top:-overscan}}
     viewBox={`${cameraX - size.width/(2*scale)} ${cameraY - size.height/(2*scale)} ${size.width/scale} ${size.height/scale}`}
     role="group" aria-label="Faction dominions contain provinces, composed of selectable states. Select a state for details. Drag to pan; use the mouse wheel to zoom; focus a province to issue orders."
@@ -204,7 +207,7 @@ const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, 
     <rect x={cropX} y={cropY} width={cropWidth} height={cropHeight} className="map-sea" />
     <rect x={cropX} y={cropY} width={cropWidth} height={cropHeight} fill="url(#sea-engraving)" />
     <g className="map-ground" transform={projection.groundTransform}>
-    {prepared.geometry?<PreparedGroundMap prepared={prepared} camera={camera} scale={scale} yScale={projection.yScale} size={size}/>:ground.geometry?<><GroundFallback ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level} shading={settings.groundShading}/>
+    {prepared.geometry?<PreparedGroundMap prepared={prepared} camera={camera} scale={scale} yScale={projection.yScale} size={size} pixi={pixi&&pixiLayers!=='scenery'}/>:ground.geometry?<><GroundFallback ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size} level={level} shading={settings.groundShading}/>
       <CachedGround ground={ground} camera={{x:centreX,y:centreY}} scale={scale} yScale={projection.yScale} size={size}/></>:<ContextLand/>}
     {theatreEnabled&&<TheatreTerritories view={view} selectedId={selectedDraftId} battle={!!game.battle} onSelect={onSelectDraft} suppressClick={suppressClick}/>}
     <StateTerritories states={game.states} provinces={game.provinces} selectedId={state?.id} battle={!!game.battle} onSelect={onSelect} suppressClick={suppressClick}/>
@@ -220,7 +223,7 @@ const CampaignMapScene=memo(function CampaignMapScene({ game, camera, settings, 
     <MapBorders borders={borders} view={view} states={game.states} state={state} province={province} projection={projection} provinceBorders={settings.provinceBorders} stateBorders={settings.stateBorders} waterways={settings.waterways} dominion={level==='dominion'}/>
     {settings.labels&&settings.waterways&&<WaterLabels projection={projection} perspective={perspective} scale={scale}/>}
     {level==='dominion'&&settings.mountains&&<OverviewRanges projection={projection} view={view}/>}
-    <BabyloniaScenery objects={scenery}/>
+    {pixi&&pixiLayers!=='ground'?<PixiScenery objects={scenery} view={{left:cameraX-size.width/(2*scale),right:cameraX+size.width/(2*scale),top:cameraY-size.height/(2*scale),bottom:cameraY+size.height/(2*scale)}} scale={scale}/>:<BabyloniaScenery objects={scenery}/>}
     <g className="map-primary-centres map-settlements" pointerEvents="none" aria-hidden="true">
       {simpleCentres.filter(o=>o.placement.asset==='settlement'&&!seatIds.has(o.placement.settlementId??'')&&inView(o.x,o.y)).map(o=><circle key={o.placement.id} data-simple-centre={o.placement.id} cx={o.x} cy={o.y} r={2.3/scale}/>)}
     </g>

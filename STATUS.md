@@ -282,3 +282,37 @@ Mesopotamian floodplains now use stronger irrigated greens along the Tigris, Eup
 Thirteen feathered geographic washes blend across regional ground rather than drawing political colour blocks. Shared wash and river styles keep the canvas artwork and SVG fallback consistent. Borders, river courses, settlement positions and movement rules retain their existing geometry.
 
 Validation: all 145 tests, lint and production build pass. Desktop/mobile browser checks pass for Babylonia, Susiana and Persis, including SVG fallback. Cached and vector screenshots were reviewed. All 126 prepared terrain images were regenerated and validated at 12.39 MiB.
+
+## PixiJS renderer experiment — 9 October 2026
+
+The map/geography checkpoint was pushed to `main` as `2d01c53` before renderer work began. An opt-in `/?renderer=pixi` prototype now draws prepared terrain and upright scenery using PixiJS WebGL while retaining SVG interaction, borders and labels. `pixiLayers=scenery` and `pixiLayers=ground` isolate the two layers. It preserves authored artwork, coordinates, depth order and settlement development, loads lazily, and falls back to SVG on missing/lost WebGL. Geography and campaign rules are unchanged.
+
+The prototype is slower in the available headless environment, which uses SwiftShader software WebGL and has hardware GPU compositing disabled. The current renderer remains the default. Matched benchmark reports, hardware diagnostics, quality comparisons and memory/composition limitations are documented in PERFORMANCE.md. A hardware GPU comparison is needed before adopting Pixi.
+
+Validation: 145 tests, lint and production build pass. Desktop/mobile browser checks cover visual alignment and close zoom at DPR 1/2, selection, resizing, context loss and unsupported WebGL. Mean screenshot differences from authored SVG remain below 0.63 channel levels out of 255. Existing Persis and default Susiana browser checks pass.
+
+## Northern Zagros mountain artwork trial — 10 October 2026
+
+The Babylon-adjacent `zagros-north` section mixes three additional peak silhouettes and two angular foothill variants into its existing scenery. Broader paired summits and layered shoulders retain the original palette, lighting, symbol bounds and ground anchors. The shared symbol selector serves both SVG and the opt-in Pixi renderer. No scenery placements are added; administrative borders, independent terrain geometry and movement passes remain unchanged.
+
+Validation: production build and lint pass. Before/after screenshots were reviewed at province and close zoom. Existing prepared terrain images validate without regeneration.
+
+## Mountain artwork rollout — 10 October 2026
+
+The northern Zagros trial now extends to 19 authored ranges across the developed Mesopotamian and western Iranian theatres: the Zagros, Susiana, Media, Atropatene, Alborz, Persis and Carmanian ridges. The selector mixes original and additional peak/foothill silhouettes with a fixed phase per range, and reads the original peak index for derived shoulder and foot sprites. The wider world retains its existing artwork. All positions, scales, object counts, terrain barriers and passes retain their authored values.
+
+Validation: production build, prepared-ground validation and lint pass. Production browser screenshots were reviewed across Atropatene, Susiana and Persis without browser errors.
+
+## Regional ground base colours — 10 October 2026
+
+Five broad physical ground regions now establish the underlying terrain colours: olive-silt Mesopotamian alluvium, pale yellow-green Susiana, dry tan Zagros foothills, ochre Median steppe and sandy Persis. Their solid interiors blend at geographic edges rather than province boundaries. Existing fertility, saltland and relief details remain layered above these bases. Base colours remain visible when optional feature shading is disabled. Shared region paths, colours, opacity and edge softening serve both canvas artwork and SVG fallback; land clipping keeps colours out of the sea.
+
+All 126 prepared images were regenerated and validated at 12.48 MiB. Production build, lint and all 11 ground-rendering tests pass. Desktop/mobile Susiana checks pass, including vector terrain. Browser screenshots were reviewed across Babylonia, Susiana, Media and Persis, with an additional Babylon vector-rendering review. Administrative geography and movement rules remain unchanged.
+
+## Softer river fertility and upland basin bases — 10 October 2026
+
+The strong irrigation treatment is reduced now that regional ground has its own colour. Main Mesopotamian river wash opacity drops from .23 to .10 and its inner wash from .10 to .045. Irrigated terrain brush opacity drops from .58 to .30 and surface patch opacity from .42 to .20; colours shift toward muted olive. Susian tributary washes and Persian cultivation accents also soften. River geometry and water ink remain unchanged.
+
+Six additional feathered physical bases distinguish the Atropatene lake basin, Nisaean grassland, Western Valley, Mountain Entrance valley, Pasargadae basin and Persepolis farming basin. They use quieter straw, stone and sage soil colours beneath the remaining cultivation details, independent of political boundaries. Shared canvas/SVG palettes and existing land clipping apply throughout.
+
+All 126 prepared images were regenerated and validated at 12.36 MiB. Production build, lint and all 11 ground-rendering tests pass. Desktop/mobile Persis checks pass, including SVG fallback. Production screenshots across Babylonia, Susiana, Media and Persis were visually reviewed. Borders, mountain barriers and movement passes retain their geometry.
